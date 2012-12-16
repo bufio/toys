@@ -25,10 +25,11 @@ func NewViewSet() *ViewSet {
 }
 
 type View struct {
-	Root     string
+	root     string
 	Set      map[string]*ViewSet
 	current  string
 	funcsMap template.FuncMap
+	Resource string
 }
 
 func (v *View) AddFunc(name string, f interface{}) error {
@@ -56,18 +57,19 @@ func (v *View) Parse(set string) error {
 		return nil
 	}
 
-	setFolder := filepath.Join(v.Root, set)
+	setFolder := filepath.Join(v.root, set)
 
-	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).ParseGlob(filepath.Join(setFolder, "shared", "*.tmpl")))
+	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).
+		ParseGlob(filepath.Join(setFolder, "shared", "*.tmpl")))
 	vs := NewViewSet()
 	vs.diver = tmpl
 	//parse page
-	root, err := os.Open(setFolder)
+	setroot, err := os.Open(setFolder)
 	if err != nil {
 		return err
 	}
 
-	files, err := root.Readdir(-1)
+	files, err := setroot.Readdir(-1)
 	if err != nil {
 		return err
 	}
@@ -105,9 +107,11 @@ func (v *View) Load(w Writer, pageName string, data interface{}) {
 
 func NewView(root string) *View {
 	v := &View{}
-	v.Root = root
+	v.root = root
 	v.Set = make(map[string]*ViewSet)
 	v.funcsMap = template.FuncMap{}
-
+	v.funcsMap["resource"] = func(uri string) string {
+		return v.Resource + uri
+	}
 	return v
 }
