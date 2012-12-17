@@ -2,6 +2,7 @@ package view
 
 import (
 	"fmt"
+	"github.com/openvn/toys/lang"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -26,10 +27,21 @@ func NewViewSet() *ViewSet {
 
 type View struct {
 	root     string
-	Set      map[string]*ViewSet
+	set      map[string]*ViewSet
 	current  string
 	funcsMap template.FuncMap
 	Resource string
+}
+
+func NewView(root string) *View {
+	v := &View{}
+	v.root = root
+	v.set = make(map[string]*ViewSet)
+	v.funcsMap = template.FuncMap{}
+	v.funcsMap["resource"] = func(uri string) string {
+		return v.Resource + uri
+	}
+	return v
 }
 
 func (v *View) AddFunc(name string, f interface{}) error {
@@ -50,13 +62,19 @@ func (v *View) AddFunc(name string, f interface{}) error {
 	return fmt.Errorf("view: %s", "AddFunc require a valid function")
 }
 
-func (v *View) Parse(set string) error {
-	_, ok := v.Set[set]
-	if ok {
-		v.current = set
-		return nil
+func (v *View) SetDefault(set string) error {
+	_, ok := v.set[set]
+	if !ok {
+		err := v.Parse(set)
+		if err != nil {
+			return err
+		}
 	}
+	v.current = set
+	return nil
+}
 
+func (v *View) Parse(set string) error {
 	setFolder := filepath.Join(v.root, set)
 
 	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).
@@ -91,13 +109,13 @@ func (v *View) Parse(set string) error {
 		}
 	}
 
-	v.Set[set] = vs
+	v.set[set] = vs
 	v.current = set
 	return nil
 }
 
 func (v *View) Load(w Writer, pageName string, data interface{}) {
-	p, ok := v.Set[v.current].page[pageName]
+	p, ok := v.set[v.current].page[pageName]
 	if ok {
 		p.ExecuteTemplate(w, "layout.tmpl", data)
 		return
@@ -105,13 +123,11 @@ func (v *View) Load(w Writer, pageName string, data interface{}) {
 	fmt.Fprintf(w, "%#v", data)
 }
 
-func NewView(root string) *View {
-	v := &View{}
-	v.root = root
-	v.Set = make(map[string]*ViewSet)
-	v.funcsMap = template.FuncMap{}
-	v.funcsMap["resource"] = func(uri string) string {
-		return v.Resource + uri
+func (v *View) SetLang(l *lang.Lang) {
+	v.funcsMap["lang"] = func(file, key string) string {
+		return l.Load(file, key)
 	}
-	return v
+	v.funcsMap["langset"] = func(set, file, key string) string {
+		return l.LoadSet(set, file, key)
+	}
 }

@@ -2,6 +2,8 @@ package lang
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -9,20 +11,21 @@ import (
 type Lang struct {
 	root    string
 	current string
-	Set     map[string]map[string]string
+	set     map[string]map[string]map[string]string
 }
 
-func NewLang(root string) {
+func NewLang(root string) *Lang {
 	l := &Lang{}
 	l.root = root
-	l.Set = make(map[string]map[string]string)
+	l.set = make(map[string]map[string]map[string]string)
+	return l
 }
 
 // readln returns a single line (without the ending \n)
 // from the input buffered reader.
 // An error is returned if there is an error with the
 // buffered reader.
-func readln(r *bufio.Reader) (string, error) {
+func readln(r *bufio.Reader) ([]byte, error) {
 	var (
 		isPrefix bool  = true
 		err      error = nil
@@ -32,27 +35,35 @@ func readln(r *bufio.Reader) (string, error) {
 		line, isPrefix, err = r.ReadLine()
 		ln = append(ln, line...)
 	}
-	return string(ln), err
+	return ln, err
+}
+
+func (l *Lang) SetDefault(set string) error {
+	_, ok := l.set[set]
+	if !ok {
+		err := l.Parse(set)
+		if err != nil {
+			return err
+		}
+	}
+	l.current = set
+	return nil
 }
 
 func (l *Lang) Parse(set string) error {
-	_, ok := l.Set[set]
-	if ok {
-		l.current = set
-		return nil
-	}
-
 	setFolder := filepath.Join(l.root, set)
 
 	setroot, err := os.Open(setFolder)
 	if err != nil {
-		return err
+		return errors.New("lang: cannot open language set folder")
 	}
 
 	files, err := setroot.Readdir(-1)
 	if err != nil {
-		return err
+		return errors.New("lang: cannot list file in language set folder")
 	}
+
+	l.set[set] = make(map[string]map[string]string)
 	for _, file := range files {
 		if !file.IsDir() {
 			//read file
@@ -62,16 +73,28 @@ func (l *Lang) Parse(set string) error {
 			}
 
 			r := bufio.NewReader(f)
-			s, err := readln(r)
-			if err != nil {
+			s, e := readln(r)
+			if e != nil {
 				continue
 			}
 
 			m := make(map[string]string)
 			for e == nil {
-				fmt.Println(s)
-				s, err = readln(r)
+				pos := bytes.Index(s, []byte{0x3d})
+				m[string(s[:pos])] = string(s[pos+1:])
+				s, e = readln(r)
 			}
+			l.set[set][file.Name()] = m
 		}
 	}
+	l.current = set
+	return nil
+}
+
+func (l *Lang) Load(file, key string) string {
+	return l.LoadSet(l.current, file, key)
+}
+
+func (l *Lang) LoadSet(set, file, key string) string {
+	return l.set[set][file][key]
 }
