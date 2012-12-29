@@ -1,3 +1,6 @@
+// Copyright 2012 The Toys Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package lang
 
 import (
@@ -54,6 +57,8 @@ func (l *Lang) Parse(set string) error {
 	setFolder := filepath.Join(l.root, set)
 
 	setroot, err := os.Open(setFolder)
+	defer setroot.Close()
+
 	if err != nil {
 		return errors.New("lang: cannot open language set folder")
 	}
@@ -68,6 +73,7 @@ func (l *Lang) Parse(set string) error {
 		if !file.IsDir() {
 			//read file
 			f, err := os.Open(filepath.Join(setFolder, file.Name()))
+			defer f.Close()
 			if err != nil {
 				continue
 			}
