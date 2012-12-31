@@ -7,15 +7,12 @@ import (
 	"fmt"
 	"github.com/openvn/toys/lang"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 )
-
-type Writer interface {
-	Write(p []byte) (n int, err error)
-}
 
 type ViewSet struct {
 	diver *template.Template
@@ -119,7 +116,7 @@ func (v *View) Parse(set string) error {
 	return nil
 }
 
-func (v *View) Load(w Writer, pageName string, data interface{}) {
+func (v *View) Load(w io.Writer, pageName string, data interface{}) {
 	p, ok := v.set[v.current].page[pageName]
 	if ok {
 		p.ExecuteTemplate(w, "layout.tmpl", data)
