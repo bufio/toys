@@ -5,22 +5,34 @@
 package auth
 
 import (
+	"labix.org/v2/mgo"
 	"time"
 )
-
-type User interface {
-	SetPassword(password string)
-}
 
 type Authenticater interface {
 	SetOnlineTime(d time.Duration)
 	GetOnlineTime() time.Duration
-	CreateUser(email, password string) error
+	AddUser(u User) error
 	DeleteUser(email string) error
+	GetUser() (User, error)
 	FindUser(id string) (User, error)
 	FindUserByEmail(email string) (User, error)
-	FindAllUser(offset string, limit int) ([]User, error)
-	FindUserOnline(offset string, limit) ([]User, error)
+	FindAllUser(offsetKey string, limit int) ([]User, error)
+	FindUserOnline(offsetKey string, limit int) ([]User, error)
 	CountUserOnline() int
-	ValidateUser(email, password string) bool
+	ValidateUser(email string, password string) (User, bool)
+	LogginUser(u User, remember int)
+}
+
+type AuthDBCtx struct {
+	sess        *mgo.Session
+	confgCol    *mgo.Collection
+	rememberCol *mgo.Collection
+}
+
+func (a *AuthDBCtx) Close() {
+	a.sess.Close()
+}
+
+func (a *AuthDBCtx) SetOnlineTime(d time.Duration) {
 }

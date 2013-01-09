@@ -23,6 +23,10 @@ type Password struct {
 	InitAt time.Time
 }
 
+type User interface {
+	SetPassword(password string)
+}
+
 type Account struct {
 	Email      string
 	Pwd        Password
@@ -39,7 +43,7 @@ type Account struct {
 func NewAccount(email, password string) *Account {
 	u := &Account{}
 
-	u.privilege = make(map[string]bool)
+	u.Privilege = make(map[string]bool)
 
 	u.Email = email
 	u.SetPassword(password)
