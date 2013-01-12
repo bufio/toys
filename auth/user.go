@@ -5,17 +5,8 @@
 package auth
 
 import (
-	"crypto/sha256"
-	"github.com/gorilla/securecookie"
-	"hash"
 	"time"
 )
-
-var hashFunc func() hash.Hash = sha256.New
-
-func SetHashFunc(f func() hash.Hash) {
-	hashFunc = f
-}
 
 type Password struct {
 	Hashed []byte
@@ -23,38 +14,30 @@ type Password struct {
 	InitAt time.Time
 }
 
-type User interface {
-	SetPassword(password string)
+type User struct {
+	Email     string
+	Pwd       Password
+	Info      `bson:",inline"`
+	Privilege map[string]bool
+	Approved  bool
 }
 
-type Account struct {
-	Email      string
-	Pwd        Password
-	FirstName  string
-	LastName   string
-	MiddleName string
-	NickName   string
-	BirthDay   time.Time
-	JoinDay    time.Time
-	LastLogin  time.Time
-	Privilege  map[string]bool
+type Info struct {
+	FirstName    string
+	LastName     string
+	MiddleName   string
+	NickName     string
+	BirthDay     time.Time
+	JoinDay      time.Time
+	LastActivity time.Time
+	Address      []Address
+	Phone        []string
 }
 
-func NewAccount(email, password string) *Account {
-	u := &Account{}
-
-	u.Privilege = make(map[string]bool)
-
-	u.Email = email
-	u.SetPassword(password)
-	return u
-}
-
-func (u *Account) SetPassword(password string) {
-	u.Pwd.Salt = securecookie.GenerateRandomKey(64)
-	h := hashFunc()
-	h.Write([]byte(password))
-	h.Write(u.Pwd.Salt)
-	u.Pwd.Hashed = h.Sum(nil)
-	u.Pwd.InitAt = time.Now()
+type Address struct {
+	Country  string
+	State    string
+	City     string
+	District string
+	Street   string
 }

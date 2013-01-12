@@ -44,7 +44,8 @@ type Provider interface {
 	GetInt(name string) int
 	GetBool(name string) bool
 	GetString(name string) string
-	Detele(name ...string)
+	Delete(name ...string) error
+	DeleteAll(flash bool) error
 
 	SetFlash(name string, val interface{}) error
 	GetFlash(name string) interface{}
@@ -52,5 +53,5 @@ type Provider interface {
 	GetFlashBool(name string) bool
 	GetFlashString(name string) string
 
-	Destroy()
+	Destroy() error
 }
