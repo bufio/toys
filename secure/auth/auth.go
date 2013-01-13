@@ -5,9 +5,11 @@
 package auth
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"github.com/openvn/toys/secure"
+	"github.com/openvn/toys/secure/auth/session"
 	"hash"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -38,7 +40,15 @@ type rememberInfo struct {
 	Exp   time.Time
 }
 
+type sessionInfo struct {
+	Id     bson.ObjectId `bson:"_id"`
+	InitAt time.Time
+}
+
 type Authenticater interface {
+	// SetOnlineThreshold sets the online threshold time, if t <= 0, the loggin
+	// state will last until the session expired.
+	SetOnlineThreshold(t int)
 	// SetHashFunc sets the hash.Hash which will be use for password hasing
 	SetHashFunc(h hash.Hash)
 	// SetNotificater sets the Notificater which will be use for sending
@@ -81,7 +91,7 @@ type Authenticater interface {
 	CountUserOnline() int
 	// ValidateUser validate user email and password.
 	// It returns the user infomations if the email and password is correct.
-	ValidateUser(email string, password string) (*User, bool)
+	ValidateUser(email string, password string) (*User, error)
 	// LogginUser logs user in and set the session "user_email" with value is
 	// the user email string. Remember take a number of second to keep the user
 	// loggin state.
@@ -90,6 +100,8 @@ type Authenticater interface {
 }
 
 type AuthDBCtx struct {
+	threshold    time.Duration
+	sess         session.Provider
 	req          *http.Request
 	respw        http.ResponseWriter
 	notifer      Notificater
@@ -98,11 +110,19 @@ type AuthDBCtx struct {
 	userColl     *mgo.Collection
 	confgColl    *mgo.Collection
 	rememberColl *mgo.Collection
+	cookieName   string
+	sessionName  string
 }
 
 func NewAuthDBCtx() Authenticater {
 	a := &AuthDBCtx{}
 	return a
+}
+
+func (a *AuthDBCtx) SetOnlineThreshold(t int) {
+	if t > 0 {
+		a.threshold = time.Duration(t) * time.Second
+	}
 }
 
 func (a *AuthDBCtx) SetNotificater(n Notificater) {
@@ -191,7 +211,7 @@ func (a *AuthDBCtx) DeleteUser(id string) error {
 
 func (a *AuthDBCtx) GetUser() (*User, error) {
 	//check for remember cookie
-	cookie, err := a.req.Cookie(CookieName)
+	cookie, err := a.req.Cookie(a.cookieName)
 	if err == nil {
 		pos := strings.Index(cookie.Value, "|")
 		id := cookie.Value[:pos]
@@ -207,7 +227,7 @@ func (a *AuthDBCtx) GetUser() (*User, error) {
 					if err == nil {
 						token = base64.URLEncoding.EncodeToString(secure.RandomToken(128))
 						http.SetCookie(a.respw, &http.Cookie{
-							Name:  CookieName,
+							Name:  a.cookieName,
 							Value: id + "|" + token,
 						})
 						err = a.rememberColl.UpdateId(oid, bson.M{
@@ -217,7 +237,7 @@ func (a *AuthDBCtx) GetUser() (*User, error) {
 							return &user, nil
 						} else {
 							http.SetCookie(a.respw, &http.Cookie{
-								Name:   CookieName,
+								Name:   a.cookieName,
 								MaxAge: -1,
 							})
 							a.rememberColl.RemoveId(oid)
@@ -228,6 +248,18 @@ func (a *AuthDBCtx) GetUser() (*User, error) {
 		}
 	}
 	//check for session
+	inf, ok := a.sess.Get(a.sessionName).(sessionInfo)
+	if ok {
+		if inf.InitAt.Add(a.threshold).Before(time.Now()) {
+			user := User{}
+			err = a.userColl.FindId(inf.Id).One(&user)
+			if err == nil {
+				return &user, nil
+			}
+		} else {
+			a.sess.Delete(a.sessionName)
+		}
+	}
 	//not logged-in
 	return nil, errors.New("auth: not logged-in")
 }
@@ -256,9 +288,19 @@ func (a *AuthDBCtx) CountUserOnline() int {
 	return 0
 }
 
-func (a *AuthDBCtx) ValidateUser(email string, password string) (*User, bool) {
+func (a *AuthDBCtx) ValidateUser(email string, password string) (*User, error) {
 	u := &User{}
-	return u, false
+	err := a.userColl.Find(bson.M{"email": email}).One(&u)
+	if err != nil {
+		return nil, err
+	}
+	a.pwdHash.Write([]byte(password))
+	a.pwdHash.Write(u.Pwd.Salt)
+	hashed := a.pwdHash.Sum(nil)
+	if bytes.Compare(u.Pwd.Hashed, hashed) != 0 {
+		return nil, err
+	}
+	return u, nil
 }
 
 func (a *AuthDBCtx) LogginUser(email string, remember int) {

@@ -18,6 +18,7 @@ type Password struct {
 type User struct {
 	Id        bson.ObjectId `bson:"_id,omitempty"`
 	Email     string
+	OldPwd    Password
 	Pwd       Password
 	Info      `bson:",inline"`
 	Privilege map[string]bool

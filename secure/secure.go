@@ -9,6 +9,10 @@ import (
 	"io"
 )
 
+/*
+Should I do some cryptography code here? Or wrap some available pkg, which one?
+*/
+
 func RandomToken(l uint) []byte {
 	t := make([]byte, l)
 	if _, err := io.ReadFull(rand.Reader, t); err != nil {
