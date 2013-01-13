@@ -5,14 +5,23 @@
 package auth
 
 import (
+	"encoding/base64"
 	"errors"
-	"github.com/gorilla/securecookie"
+	"github.com/openvn/toys/secure"
 	"hash"
 	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
+	"net/http"
+	"strings"
 	"time"
 )
 
+const (
+	CookieName string = "toysAuth"
+)
+
 var (
+	ErrInvalidId       error = errors.New("auth: invalid id, the id must be in bson.ObjectId format")
 	ErrInvalidEmail    error = errors.New("auth: invalid email address")
 	ErrDuplicateEmail  error = errors.New("auth: duplicate email address")
 	ErrInvalidPassword error = errors.New("auth: invalid password")
@@ -21,6 +30,12 @@ var (
 type Config struct {
 	Key   string `bson:"_id"`
 	Value interface{}
+}
+
+type rememberInfo struct {
+	Id    bson.ObjectId `bson:"_id"`
+	Token string
+	Exp   time.Time
 }
 
 type Authenticater interface {
@@ -41,9 +56,9 @@ type Authenticater interface {
 	// Notificater. If app is false, the user is waiting to be approved.
 	// It returns an error describes the first issue encountered, if any.
 	AddUserInfo(email, pwd string, info Info, pri map[string]bool, notif, app bool) error
-	// DeleteUser deletes an user from database base on the given email;
+	// DeleteUserByEmail deletes an user from database base on the given id;
 	// It returns an error describes the first issue encountered, if any.
-	DeleteUser(email string) error
+	DeleteUser(id string) error
 	// GetUser gets the infomations and update the LastActivity of the current
 	// logged user;
 	// It returns an error describes the first issue encountered, if any.
@@ -75,6 +90,8 @@ type Authenticater interface {
 }
 
 type AuthDBCtx struct {
+	req          *http.Request
+	respw        http.ResponseWriter
 	notifer      Notificater
 	fmtChecker   FormatChecker
 	pwdHash      hash.Hash
@@ -111,11 +128,12 @@ func (a *AuthDBCtx) createUser(email, password string, app bool) (*User, error) 
 	u := &User{}
 	u.Email = email
 	u.Pwd.InitAt = time.Now()
-	u.Pwd.Salt = securecookie.GenerateRandomKey(32)
+	u.Pwd.Salt = secure.RandomToken(32)
 	a.pwdHash.Write([]byte(password))
 	a.pwdHash.Write(u.Pwd.Salt)
 	u.Pwd.Hashed = a.pwdHash.Sum(nil)
 	a.pwdHash.Reset()
+
 	u.Approved = app
 	return u, nil
 }
@@ -157,13 +175,61 @@ func (a *AuthDBCtx) AddUserInfo(email, password string, info Info,
 	return a.insertUser(u, notif, app)
 }
 
-func (a *AuthDBCtx) DeleteUser(email string) error {
-	return nil
+func validateObjectHex(id string) bool {
+	if len(id) == 12 {
+		return true
+	}
+	return false
+}
+
+func (a *AuthDBCtx) DeleteUser(id string) error {
+	if validateObjectHex(id) {
+		return a.userColl.RemoveId(bson.ObjectIdHex(id))
+	}
+	return ErrInvalidId
 }
 
 func (a *AuthDBCtx) GetUser() (*User, error) {
-	u := &User{}
-	return u, nil
+	//check for remember cookie
+	cookie, err := a.req.Cookie(CookieName)
+	if err == nil {
+		pos := strings.Index(cookie.Value, "|")
+		id := cookie.Value[:pos]
+		token := cookie.Value[pos+1:]
+		if validateObjectHex(id) {
+			r := rememberInfo{}
+			oid := bson.ObjectIdHex(id)
+			err = a.rememberColl.FindId(oid).One(&r)
+			if err == nil {
+				if token == r.Token {
+					user := User{}
+					err = a.userColl.FindId(oid).One(&user)
+					if err == nil {
+						token = base64.URLEncoding.EncodeToString(secure.RandomToken(128))
+						http.SetCookie(a.respw, &http.Cookie{
+							Name:  CookieName,
+							Value: id + "|" + token,
+						})
+						err = a.rememberColl.UpdateId(oid, bson.M{
+							"$set": bson.M{"token": token},
+						})
+						if err == nil {
+							return &user, nil
+						} else {
+							http.SetCookie(a.respw, &http.Cookie{
+								Name:   CookieName,
+								MaxAge: -1,
+							})
+							a.rememberColl.RemoveId(oid)
+						}
+					}
+				}
+			}
+		}
+	}
+	//check for session
+	//not logged-in
+	return nil, errors.New("auth: not logged-in")
 }
 
 func (a *AuthDBCtx) FindUser(id string) (*User, error) {

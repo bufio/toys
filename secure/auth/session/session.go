@@ -5,7 +5,7 @@ package session
 
 import (
 	"encoding/base64"
-	"github.com/gorilla/securecookie"
+	"github.com/openvn/toys/secure"
 	"time"
 )
 
@@ -20,7 +20,7 @@ type sessionEntry struct {
 
 func newSessionEntry(addr, agent string) *sessionEntry {
 	s := &sessionEntry{}
-	s.Id = base64.URLEncoding.EncodeToString(securecookie.GenerateRandomKey(64))
+	s.Id = base64.URLEncoding.EncodeToString(secure.RandomToken(32))
 	s.RemoteAddr = addr
 	s.UserAgent = agent
 	s.LastActivity = time.Now()

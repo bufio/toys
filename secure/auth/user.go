@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"labix.org/v2/mgo/bson"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type Password struct {
 }
 
 type User struct {
+	Id        bson.ObjectId `bson:"_id,omitempty"`
 	Email     string
 	Pwd       Password
 	Info      `bson:",inline"`
