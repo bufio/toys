@@ -19,6 +19,10 @@ func (c *Controller) Init(w http.ResponseWriter, r *http.Request) {
 	c.respw = w
 }
 
+func (c *Controller) Write(b []byte) (int, error) {
+	return c.respw.Write(b)
+}
+
 func (c *Controller) Post(name string, filter bool) string {
 	if c.req.Method == "POST" {
 		if filter {

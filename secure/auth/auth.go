@@ -297,6 +297,7 @@ func (a *AuthDBCtx) ValidateUser(email string, password string) (*User, error) {
 	a.pwdHash.Write([]byte(password))
 	a.pwdHash.Write(u.Pwd.Salt)
 	hashed := a.pwdHash.Sum(nil)
+	a.pwdHash.Reset()
 	if bytes.Compare(u.Pwd.Hashed, hashed) != 0 {
 		return nil, err
 	}
