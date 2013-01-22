@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package auth
+package membership
 
-type FormatChecker interface {
-	PasswordValidate(string) bool
-	EmailValidate(string) bool
+type Notificater interface {
+	AccountAdded(email string, app bool) error
+	PasswordChanged(email string)
 }

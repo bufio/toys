@@ -5,7 +5,7 @@ package view
 
 import (
 	"fmt"
-	"github.com/openvn/toys/lang"
+	"github.com/openvn/toys/locale"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -125,7 +125,7 @@ func (v *View) Load(w io.Writer, pageName string, data interface{}) {
 	fmt.Fprintf(w, "%#v", data)
 }
 
-func (v *View) SetLang(l *lang.Lang) {
+func (v *View) SetLang(l *locale.Lang) {
 	v.funcsMap["lang"] = func(file, key string) string {
 		return l.Load(file, key)
 	}

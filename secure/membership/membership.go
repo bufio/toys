@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package auth
+package membership
 
 import (
 	"bytes"
 	"encoding/base64"
 	"errors"
 	"github.com/openvn/toys/secure"
-	"github.com/openvn/toys/secure/auth/session"
+	"github.com/openvn/toys/secure/membership/session"
 	"hash"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
