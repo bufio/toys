@@ -12,15 +12,34 @@ import (
 type Controller struct {
 	req   *http.Request
 	respw http.ResponseWriter
+	inf   map[string]string
 }
 
 func (c *Controller) Init(w http.ResponseWriter, r *http.Request) {
 	c.req = r
 	c.respw = w
+	c.inf = make(map[string]string)
+	c.inf["req_method"] = r.Method
+	c.inf["req_host"] = r.URL.Host
+	c.inf["req_path"] = r.URL.Path
+	c.inf["req_query"] = r.URL.RawQuery
+	c.inf["remote_addr"] = r.RemoteAddr
 }
 
 func (c *Controller) Write(b []byte) (int, error) {
 	return c.respw.Write(b)
+}
+
+func (c *Controller) Request() *http.Request {
+	return c.req
+}
+
+func (c *Controller) Redirect(url string, code int) {
+	http.Redirect(c.respw, c.req, url, code)
+}
+
+func (c *Controller) Info(key string) string {
+	return c.inf[key]
 }
 
 func (c *Controller) Post(name string, filter bool) string {

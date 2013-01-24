@@ -5,25 +5,14 @@
 package membership
 
 import (
-	"bytes"
-	"encoding/base64"
 	"errors"
-	"github.com/openvn/toys/secure"
-	"github.com/openvn/toys/secure/membership/session"
 	"hash"
-	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
-	"net/http"
-	"strings"
 	"time"
 )
 
-const (
-	CookieName string = "toysAuth"
-)
-
 var (
-	ErrInvalidId       error = errors.New("auth: invalid id, the id must be in bson.ObjectId format")
+	ErrInvalidId       error = errors.New("auth: invalid id")
 	ErrInvalidEmail    error = errors.New("auth: invalid email address")
 	ErrDuplicateEmail  error = errors.New("auth: duplicate email address")
 	ErrInvalidPassword error = errors.New("auth: invalid password")
@@ -41,8 +30,8 @@ type rememberInfo struct {
 }
 
 type sessionInfo struct {
-	Id     bson.ObjectId `bson:"_id"`
-	InitAt time.Time
+	Id bson.ObjectId `bson:"_id"`
+	At time.Time
 }
 
 type Authenticater interface {
@@ -92,218 +81,8 @@ type Authenticater interface {
 	// ValidateUser validate user email and password.
 	// It returns the user infomations if the email and password is correct.
 	ValidateUser(email string, password string) (*User, error)
-	// LogginUser logs user in and set the session "user_email" with value is
-	// the user email string. Remember take a number of second to keep the user
-	// loggin state.
+	// LogginUser logs user in by using a session that store user id string. 
+	// Remember take a number of second to keep the user loggin state.
 	// Developer must call LogginUser before send any output to browser.
-	LogginUser(email string, remember int)
-}
-
-type AuthDBCtx struct {
-	threshold    time.Duration
-	sess         session.Provider
-	req          *http.Request
-	respw        http.ResponseWriter
-	notifer      Notificater
-	fmtChecker   FormatChecker
-	pwdHash      hash.Hash
-	userColl     *mgo.Collection
-	confgColl    *mgo.Collection
-	rememberColl *mgo.Collection
-	cookieName   string
-	sessionName  string
-}
-
-func NewAuthDBCtx() Authenticater {
-	a := &AuthDBCtx{}
-	return a
-}
-
-func (a *AuthDBCtx) SetOnlineThreshold(t int) {
-	if t > 0 {
-		a.threshold = time.Duration(t) * time.Second
-	}
-}
-
-func (a *AuthDBCtx) SetNotificater(n Notificater) {
-	a.notifer = n
-}
-
-func (a *AuthDBCtx) SetHashFunc(h hash.Hash) {
-	a.pwdHash = h
-}
-
-func (a *AuthDBCtx) SetFormatChecker(c FormatChecker) {
-	a.fmtChecker = c
-}
-
-func (a *AuthDBCtx) createUser(email, password string, app bool) (*User, error) {
-	if !a.fmtChecker.EmailValidate(email) {
-		return nil, ErrInvalidEmail
-	}
-	if !a.fmtChecker.PasswordValidate(password) {
-		return nil, ErrInvalidPassword
-	}
-
-	u := &User{}
-	u.Email = email
-	u.Pwd.InitAt = time.Now()
-	u.Pwd.Salt = secure.RandomToken(32)
-	a.pwdHash.Write([]byte(password))
-	a.pwdHash.Write(u.Pwd.Salt)
-	u.Pwd.Hashed = a.pwdHash.Sum(nil)
-	a.pwdHash.Reset()
-
-	u.Approved = app
-	return u, nil
-}
-
-func (a *AuthDBCtx) insertUser(u *User, notif, app bool) error {
-	err := a.userColl.Insert(u)
-	if err != nil {
-		if mgo.IsDup(err) {
-			return ErrDuplicateEmail
-		}
-		return err
-	}
-
-	if notif {
-		return a.notifer.AccountAdded(u.Email, app)
-	}
-	return nil
-}
-
-func (a *AuthDBCtx) AddUser(email, password string, notif, app bool) error {
-	u, err := a.createUser(email, password, app)
-	if err != nil {
-		return err
-	}
-
-	return a.insertUser(u, notif, app)
-}
-
-func (a *AuthDBCtx) AddUserInfo(email, password string, info Info,
-	pri map[string]bool, notif, app bool) error {
-	u, err := a.createUser(email, password, app)
-	if err != nil {
-		return err
-	}
-
-	u.Info = info
-	u.Privilege = pri
-
-	return a.insertUser(u, notif, app)
-}
-
-func validateObjectHex(id string) bool {
-	if len(id) == 12 {
-		return true
-	}
-	return false
-}
-
-func (a *AuthDBCtx) DeleteUser(id string) error {
-	if validateObjectHex(id) {
-		return a.userColl.RemoveId(bson.ObjectIdHex(id))
-	}
-	return ErrInvalidId
-}
-
-func (a *AuthDBCtx) GetUser() (*User, error) {
-	//check for remember cookie
-	cookie, err := a.req.Cookie(a.cookieName)
-	if err == nil {
-		pos := strings.Index(cookie.Value, "|")
-		id := cookie.Value[:pos]
-		token := cookie.Value[pos+1:]
-		if validateObjectHex(id) {
-			r := rememberInfo{}
-			oid := bson.ObjectIdHex(id)
-			err = a.rememberColl.FindId(oid).One(&r)
-			if err == nil {
-				if token == r.Token {
-					user := User{}
-					err = a.userColl.FindId(oid).One(&user)
-					if err == nil {
-						token = base64.URLEncoding.EncodeToString(secure.RandomToken(128))
-						http.SetCookie(a.respw, &http.Cookie{
-							Name:  a.cookieName,
-							Value: id + "|" + token,
-						})
-						err = a.rememberColl.UpdateId(oid, bson.M{
-							"$set": bson.M{"token": token},
-						})
-						if err == nil {
-							return &user, nil
-						} else {
-							http.SetCookie(a.respw, &http.Cookie{
-								Name:   a.cookieName,
-								MaxAge: -1,
-							})
-							a.rememberColl.RemoveId(oid)
-						}
-					}
-				}
-			}
-		}
-	}
-	//check for session
-	inf, ok := a.sess.Get(a.sessionName).(sessionInfo)
-	if ok {
-		if inf.InitAt.Add(a.threshold).Before(time.Now()) {
-			user := User{}
-			err = a.userColl.FindId(inf.Id).One(&user)
-			if err == nil {
-				return &user, nil
-			}
-		} else {
-			a.sess.Delete(a.sessionName)
-		}
-	}
-	//not logged-in
-	return nil, errors.New("auth: not logged-in")
-}
-
-func (a *AuthDBCtx) FindUser(id string) (*User, error) {
-	u := &User{}
-	return u, nil
-}
-
-func (a *AuthDBCtx) FindUserByEmail(email string) (*User, error) {
-	u := &User{}
-	return u, nil
-}
-
-func (a *AuthDBCtx) FindAllUser(offsetKey string, limit int) ([]*User, error) {
-	u := []*User{}
-	return u, nil
-}
-
-func (a *AuthDBCtx) FindUserOnline(offsetKey string, limit int) ([]*User, error) {
-	u := []*User{}
-	return u, nil
-}
-
-func (a *AuthDBCtx) CountUserOnline() int {
-	return 0
-}
-
-func (a *AuthDBCtx) ValidateUser(email string, password string) (*User, error) {
-	u := &User{}
-	err := a.userColl.Find(bson.M{"email": email}).One(&u)
-	if err != nil {
-		return nil, err
-	}
-	a.pwdHash.Write([]byte(password))
-	a.pwdHash.Write(u.Pwd.Salt)
-	hashed := a.pwdHash.Sum(nil)
-	a.pwdHash.Reset()
-	if bytes.Compare(u.Pwd.Hashed, hashed) != 0 {
-		return nil, err
-	}
-	return u, nil
-}
-
-func (a *AuthDBCtx) LogginUser(email string, remember int) {
-
+	LogginUser(id string, remember int) error
 }
