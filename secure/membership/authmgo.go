@@ -148,7 +148,7 @@ func (a *AuthMongoDBCtx) GetUser() (*User, error) {
 			err = a.rememberColl.FindId(oid).One(&r)
 			if err == nil {
 				if token == r.Token {
-					if r.Exp.After(time.Now()) {
+					if r.Exp.Before(time.Now()) {
 						//delete expried auth
 						goto DelCookie
 					}
@@ -180,19 +180,18 @@ func (a *AuthMongoDBCtx) GetUser() (*User, error) {
 		})
 	}
 	//check for session
-	inf, ok := a.sess.Get(a.sessionName).(sessionInfo)
-	println("get session")
+	mapinf, ok := a.sess.Get(a.sessionName).(map[string]interface{})
 	if ok {
-		println("ok")
-		if inf.At.Add(a.threshold).Before(time.Now()) {
-			println("valid")
+		var inf sessionInfo
+		inf.Id = mapinf["_id"].(bson.ObjectId)
+		inf.At = mapinf["at"].(time.Time)
+		if inf.At.Add(a.threshold).After(time.Now()) {
 			user := User{}
 			err = a.userColl.FindId(inf.Id).One(&user)
 			if err == nil {
 				return &user, nil
 			}
 		} else {
-			println("no valid")
 			a.sess.Delete(a.sessionName)
 		}
 	}
