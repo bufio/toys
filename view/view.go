@@ -41,6 +41,9 @@ func NewView(root string) *View {
 	v.funcsMap["resource"] = func(uri string) string {
 		return v.Resource + uri
 	}
+	v.funcsMap["equal"] = func(a, b interface{}) bool {
+		return a == b
+	}
 	return v
 }
 
