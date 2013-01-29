@@ -55,7 +55,7 @@ func (p *MgoProvider) SetExpiration(exp int) {
 	}
 	p.expiration = exp
 	p.collection.EnsureIndex(mgo.Index{
-		Key:         []string{"LastActivity"},
+		Key:         []string{"lastactivity"},
 		ExpireAfter: time.Duration(p.Expiration()) * time.Second,
 		Sparse:      true,
 	})
