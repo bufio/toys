@@ -44,6 +44,13 @@ func NewView(root string) *View {
 	v.funcsMap["equal"] = func(a, b interface{}) bool {
 		return a == b
 	}
+	v.funcsMap["indent"] = func(s string, n int) string {
+		var buff bytes.Buffer
+		for i := 0; i < n; i++ {
+			buff.WriteString(s)
+		}
+		return buff.String()
+	}
 	return v
 }
 
