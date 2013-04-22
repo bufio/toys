@@ -35,6 +35,8 @@ type sessionInfo struct {
 }
 
 type Authenticater interface {
+	SetPath(p string)
+	SetDomain(d string)
 	// SetOnlineThreshold sets the online threshold time, if t <= 0, the loggin
 	// state will last until the session expired.
 	SetOnlineThreshold(t int)
@@ -81,7 +83,7 @@ type Authenticater interface {
 	// ValidateUser validate user email and password.
 	// It returns the user infomations if the email and password is correct.
 	ValidateUser(email string, password string) (*User, error)
-	// LogginUser logs user in by using a session that store user id string. 
+	// LogginUser logs user in by using a session that store user id string.
 	// Remember take a number of second to keep the user loggin state.
 	// Developer must call LogginUser before send any output to browser.
 	LogginUser(id string, remember int) error

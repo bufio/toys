@@ -7,12 +7,15 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"path"
 )
 
 type Controller struct {
 	req   *http.Request
 	respw http.ResponseWriter
 	inf   map[string]string
+	path  string
 }
 
 func (c *Controller) Init(w http.ResponseWriter, r *http.Request) {
@@ -79,4 +82,17 @@ func (c *Controller) Print(a ...interface{}) {
 
 func (c *Controller) Printf(format string, a ...interface{}) {
 	fmt.Fprintf(c.respw, format, a...)
+}
+
+func (c *Controller) SetPath(p string) {
+	c.path = p
+}
+
+func (c *Controller) BasePath(p string) string {
+	path_url, err := url.Parse(p)
+	if err != nil && path_url.IsAbs() {
+		return path_url.String()
+	}
+
+	return path.Join(c.path, p)
 }

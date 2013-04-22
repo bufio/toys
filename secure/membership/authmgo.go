@@ -10,7 +10,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/openvn/toys/secure"
-	"github.com/openvn/toys/secure/membership/session"
+	"github.com/openvn/toys/secure/membership/sessions"
 	"hash"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
@@ -21,7 +21,7 @@ import (
 
 type AuthMongoDBCtx struct {
 	threshold    time.Duration
-	sess         session.Provider
+	sess         sessions.Provider
 	req          *http.Request
 	respw        http.ResponseWriter
 	notifer      Notificater
@@ -31,10 +31,12 @@ type AuthMongoDBCtx struct {
 	rememberColl *mgo.Collection
 	cookieName   string
 	sessionName  string
+	path         string
+	domain       string
 }
 
-func NewAuthDBCtx(w http.ResponseWriter, r *http.Request, sess session.Provider,
-	userColl, rememberColl *mgo.Collection) Authenticater {
+func NewAuthDBCtx(w http.ResponseWriter, r *http.Request, sess sessions.Provider,
+	userColl, rememberColl *mgo.Collection) *AuthMongoDBCtx {
 	a := &AuthMongoDBCtx{}
 	a.respw = w
 	a.req = r
@@ -48,6 +50,14 @@ func NewAuthDBCtx(w http.ResponseWriter, r *http.Request, sess session.Provider,
 	a.pwdHash = sha256.New()
 	a.threshold = 900 * time.Second
 	return a
+}
+
+func (a *AuthMongoDBCtx) SetPath(p string) {
+	a.path = p
+}
+
+func (a *AuthMongoDBCtx) SetDomain(d string) {
+	a.domain = d
 }
 
 func (a *AuthMongoDBCtx) SetOnlineThreshold(t int) {

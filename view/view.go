@@ -4,11 +4,14 @@
 package view
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"github.com/openvn/toys/locale"
 	"html/template"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -30,7 +33,7 @@ type View struct {
 	set      map[string]*ViewSet
 	current  string
 	funcsMap template.FuncMap
-	Resource string
+	resource string
 }
 
 func NewView(root string) *View {
@@ -39,10 +42,13 @@ func NewView(root string) *View {
 	v.set = make(map[string]*ViewSet)
 	v.funcsMap = template.FuncMap{}
 	v.funcsMap["resource"] = func(uri string) string {
-		return v.Resource + uri
+		return v.resource + uri
 	}
 	v.funcsMap["equal"] = func(a, b interface{}) bool {
 		return a == b
+	}
+	v.funcsMap["plus"] = func(a, b int) int {
+		return a + b
 	}
 	v.funcsMap["indent"] = func(s string, n int) string {
 		var buff bytes.Buffer
@@ -52,6 +58,12 @@ func NewView(root string) *View {
 		return buff.String()
 	}
 	return v
+}
+
+func (v *View) HandleResource(prefix, folder string) {
+	v.resource = prefix
+	http.Handle(prefix, http.StripPrefix(prefix,
+		http.FileServer(http.Dir(folder))))
 }
 
 func (v *View) AddFunc(name string, f interface{}) error {
@@ -117,6 +129,8 @@ func (v *View) Parse(set string) error {
 			_, err = p.Parse(string(b))
 			if err == nil {
 				vs.page[file.Name()] = p
+			} else {
+				return err
 			}
 		}
 	}
@@ -126,13 +140,13 @@ func (v *View) Parse(set string) error {
 	return nil
 }
 
-func (v *View) Load(w io.Writer, pageName string, data interface{}) {
+func (v *View) Load(w io.Writer, pageName string, data interface{}) error {
 	p, ok := v.set[v.current].page[pageName]
 	if ok {
-		p.ExecuteTemplate(w, "layout.tmpl", data)
-		return
+		return p.ExecuteTemplate(w, "layout.tmpl", data)
 	}
 	fmt.Fprintf(w, "%#v", data)
+	return errors.New("view: cannot load template")
 }
 
 func (v *View) SetLang(l *locale.Lang) {

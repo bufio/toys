@@ -23,6 +23,7 @@ type User struct {
 	Info      `bson:",inline"`
 	Privilege map[string]bool
 	Approved  bool
+	ApprCode  string
 }
 
 type Info struct {
