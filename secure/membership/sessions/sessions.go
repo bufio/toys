@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-type sessionEntry struct {
+type SessionEntry struct {
 	Id           string `bson:"_id"`
 	RemoteAddr   string
 	UserAgent    string
@@ -18,8 +18,8 @@ type sessionEntry struct {
 	FlashData    map[string]interface{}
 }
 
-func newSessionEntry(addr, agent string) *sessionEntry {
-	s := &sessionEntry{}
+func NewSessionEntry(addr, agent string) *SessionEntry {
+	s := &SessionEntry{}
 	s.Id = base64.URLEncoding.EncodeToString(secure.RandomToken(32))
 	s.RemoteAddr = addr
 	s.UserAgent = agent

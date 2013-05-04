@@ -23,13 +23,13 @@ type Config struct {
 	Value interface{}
 }
 
-type rememberInfo struct {
+type RememberInfo struct {
 	Id    bson.ObjectId `bson:"_id"`
 	Token string
 	Exp   time.Time
 }
 
-type sessionInfo struct {
+type SessionInfo struct {
 	Id bson.ObjectId `bson:"_id"`
 	At time.Time
 }
