@@ -5,7 +5,7 @@ package sessions
 
 import (
 	"encoding/base64"
-	"github.com/openvn/toys/secure"
+	"github.com/bufio/toys/secure"
 	"time"
 )
 

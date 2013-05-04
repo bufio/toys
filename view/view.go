@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/openvn/toys/locale"
+	"github.com/bufio/toys/locale"
 	"html/template"
 	"io"
 	"io/ioutil"
