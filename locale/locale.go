@@ -1,6 +1,35 @@
 // Copyright 2012 The Toys Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
+/*
+Package locale help you do build a internationalize your app. The package require a folder with a
+simple struct to work with. Assuming you have the languages folder like this:
+
+	path/to/your/languages
+	├── en
+	│   ├── index.lang
+	│   └── login.lang
+	└── vi
+	    ├── index.lang
+	    └── login.lang
+
+The folder should have some folder names with the language code, these folders call lang-set.
+Each lang set should containt some file end with .lang, the file name should represent where the
+content mostly use. The .lang file have a basic struct like this:
+
+	key1=value1
+	key2=value2
+
+For real example, in the en/index.lang we may have
+	hi=Hello!
+And in vi/index.lang, we habe:
+	hi=Xin chào!
+Then you can use the package like this:
+	lang := locale.NewLang("path/to/your/languages")
+	lang.Parse("en")
+	lang.Load("index.lang", "hi") // return "Hello!"
+*/
 package locale
 
 import (
@@ -11,12 +40,14 @@ import (
 	"path/filepath"
 )
 
+// Lang manages the locale system
 type Lang struct {
 	root    string
 	current string
 	set     map[string]map[string]map[string]string
 }
 
+// NewLang returns a new Lang iwth the given language folder
 func NewLang(root string) *Lang {
 	l := &Lang{}
 	l.root = root
@@ -41,6 +72,7 @@ func readln(r *bufio.Reader) ([]byte, error) {
 	return ln, err
 }
 
+// SetDefault make a lang-set to be default
 func (l *Lang) SetDefault(set string) error {
 	_, ok := l.set[set]
 	if !ok {
@@ -53,6 +85,7 @@ func (l *Lang) SetDefault(set string) error {
 	return nil
 }
 
+// Parse parses the lang-set and cache them
 func (l *Lang) Parse(set string) error {
 	setFolder := filepath.Join(l.root, set)
 
@@ -97,10 +130,12 @@ func (l *Lang) Parse(set string) error {
 	return nil
 }
 
+// Load returns a value base on file name and key
 func (l *Lang) Load(file, key string) string {
 	return l.LoadSet(l.current, file, key)
 }
 
+// LoadSet  returns a value base on file, set name and key
 func (l *Lang) LoadSet(set, file, key string) string {
 	return l.set[set][file][key]
 }

@@ -1,6 +1,10 @@
 // Copyright 2012 The Toys Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
+/*
+Package session provide an interface to handle web application session.
+*/
 package sessions
 
 import (
@@ -9,6 +13,8 @@ import (
 	"time"
 )
 
+// SessionEntry is a piece of infomation you save in database (or mem-cache) to
+// handle sessions n general.
 type SessionEntry struct {
 	Id           string `bson:"_id"`
 	RemoteAddr   string
@@ -18,6 +24,7 @@ type SessionEntry struct {
 	FlashData    map[string]interface{}
 }
 
+// NewSessionEntry return a new SessionEntry
 func NewSessionEntry(addr, agent string) *SessionEntry {
 	s := &SessionEntry{}
 	s.Id = base64.URLEncoding.EncodeToString(secure.RandomToken(32))
@@ -29,6 +36,7 @@ func NewSessionEntry(addr, agent string) *SessionEntry {
 	return s
 }
 
+// Provider is the interface for the session management system
 type Provider interface {
 	SetCookieName(name string)
 	CookieName() string
