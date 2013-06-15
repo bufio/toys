@@ -24,17 +24,17 @@ const (
 
 // Controller is the main struct of toys framework. Use it to handle the request.
 type Controller struct {
-	req   *http.Request
-	respw http.ResponseWriter
-	inf   map[InfoKey]string
-	path  string
+	Request  *http.Request
+	Response http.ResponseWriter
+	inf      map[InfoKey]string
+	path     string
 }
 
 // Init initial the Controller given a http.ResponseWriter and *http.Request. You must call Init
 // right after create new Controller for each request.
 func (c *Controller) Init(w http.ResponseWriter, r *http.Request) {
-	c.req = r
-	c.respw = w
+	c.Request = r
+	c.Response = w
 	c.inf = make(map[InfoKey]string)
 	c.inf[RequestMethod] = r.Method
 	c.inf[RequestHost] = r.URL.Host
@@ -45,17 +45,12 @@ func (c *Controller) Init(w http.ResponseWriter, r *http.Request) {
 
 // Write writes the slice of bytes b to the web browser.
 func (c *Controller) Write(b []byte) (int, error) {
-	return c.respw.Write(b)
-}
-
-// Request returns the origin *http.Request
-func (c *Controller) Request() *http.Request {
-	return c.req
+	return c.Response.Write(b)
 }
 
 // Redirect send the redirect header with the url destination and the status code.
 func (c *Controller) Redirect(url string, code int) {
-	http.Redirect(c.respw, c.req, url, code)
+	http.Redirect(c.Response, c.Request, url, code)
 }
 
 func (c *Controller) Info(key InfoKey) string {
@@ -65,11 +60,11 @@ func (c *Controller) Info(key InfoKey) string {
 // POST returns the string value for the named component of the POST or GET query. It call
 // template.HTMLEscapeString for the output if filter is true.
 func (c *Controller) Post(name string, filter bool) string {
-	if c.req.Method == "POST" || c.req.Method == "PUT" {
+	if c.Request.Method == "POST" || c.Request.Method == "PUT" {
 		if filter {
-			return template.HTMLEscapeString(c.req.PostFormValue(name))
+			return template.HTMLEscapeString(c.Request.PostFormValue(name))
 		}
-		return c.req.PostFormValue(name)
+		return c.Request.PostFormValue(name)
 	}
 	return ""
 }
@@ -77,11 +72,11 @@ func (c *Controller) Post(name string, filter bool) string {
 // Get returns the first value for the named component of the GET or HEAD query. It call
 // template.HTMLEscapeString for the output if filter is true.
 func (c *Controller) Get(name string, filter bool) string {
-	if c.req.Method == "GET" || c.req.Method == "HEAD" {
+	if c.Request.Method == "GET" || c.Request.Method == "HEAD" {
 		if filter {
-			return template.HTMLEscapeString(c.req.FormValue(name))
+			return template.HTMLEscapeString(c.Request.FormValue(name))
 		}
-		return c.req.FormValue(name)
+		return c.Request.FormValue(name)
 	}
 	return ""
 }
@@ -89,7 +84,7 @@ func (c *Controller) Get(name string, filter bool) string {
 // Cookie return the cookis value with given name. It call template.HTMLEscapeString for the output
 // if filter is true.
 func (c *Controller) Cookie(name string, filter bool) string {
-	cookie, err := c.req.Cookie(name)
+	cookie, err := c.Request.Cookie(name)
 	if err != nil {
 		if filter {
 			return template.HTMLEscapeString(cookie.Value)
@@ -102,13 +97,13 @@ func (c *Controller) Cookie(name string, filter bool) string {
 // Print formats using the default formats for its operands and writes to web browser. It returns
 // the number of bytes written and any write error encountered.
 func (c *Controller) Print(a ...interface{}) {
-	fmt.Fprint(c.respw, a...)
+	fmt.Fprint(c.Response, a...)
 }
 
 // Printf formats according to a format specifier and writes to web browser. It returns the number
 // of bytes written and any write error encountered.
 func (c *Controller) Printf(format string, a ...interface{}) {
-	fmt.Fprintf(c.respw, format, a...)
+	fmt.Fprintf(c.Response, format, a...)
 }
 
 // SetPath sets path of the application. For example, if you want you application handle the address

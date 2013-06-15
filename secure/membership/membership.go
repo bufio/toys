@@ -9,8 +9,8 @@ package membership
 
 import (
 	"errors"
+	"github.com/bufio/toys/model"
 	"hash"
-	"labix.org/v2/mgo/bson"
 	"time"
 )
 
@@ -27,13 +27,13 @@ type Config struct {
 }
 
 type RememberInfo struct {
-	Id    bson.ObjectId `bson:"_id"`
+	Id    model.Identifier `bson:"_id"`
 	Token string
 	Exp   time.Time
 }
 
 type SessionInfo struct {
-	Id bson.ObjectId `bson:"_id"`
+	Id model.Identifier `bson:"_id"`
 	At time.Time
 }
 
@@ -62,32 +62,32 @@ type Authenticater interface {
 	AddUserInfo(email, pwd string, info Info, pri map[string]bool, notif, app bool) error
 	// DeleteUserByEmail deletes an user from database base on the given id;
 	// It returns an error describes the first issue encountered, if any.
-	DeleteUser(id string) error
+	DeleteUser(id interface{}) error
 	// GetUser gets the infomations and update the LastActivity of the current
 	// logged user;
 	// It returns an error describes the first issue encountered, if any.
 	GetUser() (*User, error)
 	// FindUser finds the user with the given id;
 	// Its returns an ErrNotFound if the user's id was not found.
-	FindUser(id string) (*User, error)
+	FindUser(id interface{}) (*User, error)
 	// FindUserByEmail like FindUser but receive an email
 	FindUserByEmail(email string) (*User, error)
 	// FindAllUser finds and return a slice of user.
 	// offsetId, limit define which sub-sequence of matching users to return.
 	// Limit take an number of user per page; offsetId take the Id of the last
 	// user of the previous page.
-	FindAllUser(offsetId string, limit int) ([]*User, error)
+	FindAllUser(offsetId interface{}, limit int) ([]*User, error)
 	// FindAllUserOline finds and return a slice of current logged user.
 	// See FindAllUser for the usage.
-	FindUserOnline(offsetId string, limit int) ([]*User, error)
+	FindUserOnline(offsetId interface{}, limit int) ([]*User, error)
 	// CountUserOnline counts the number of user current logged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
 	// ValidateUser validate user email and password.
 	// It returns the user infomations if the email and password is correct.
 	ValidateUser(email string, password string) (*User, error)
-	// LogginUser logs user in by using a session that store user id string.
+	// LogginUser logs user in by using a session that store user id.
 	// Remember take a number of second to keep the user loggin state.
 	// Developer must call LogginUser before send any output to browser.
-	LogginUser(id string, remember int) error
+	LogginUser(id interface{}, remember int) error
 }

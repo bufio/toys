@@ -5,7 +5,7 @@
 package membership
 
 import (
-	"labix.org/v2/mgo/bson"
+	"github.com/bufio/toys/model"
 	"time"
 )
 
@@ -16,7 +16,7 @@ type Password struct {
 }
 
 type User struct {
-	Id        bson.ObjectId `bson:"_id,omitempty"`
+	Id        model.Identifier `bson:"_id,omitempty"`
 	Email     string
 	OldPwd    Password
 	Pwd       Password
