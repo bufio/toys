@@ -59,33 +59,33 @@ type Authenticater interface {
 	// if notif is true, a NewAccount notification will be send to user by the
 	// Notificater. If app is false, the user is waiting to be approved.
 	// It returns an error describes the first issue encountered, if any.
-	AddUserInfo(email, pwd string, info Info, pri map[string]bool, notif, app bool) error
+	AddUserInfo(email, pwd string, info *Information, pri map[string]bool, notif, app bool) error
 	// DeleteUserByEmail deletes an user from database base on the given id;
 	// It returns an error describes the first issue encountered, if any.
 	DeleteUser(id interface{}) error
 	// GetUser gets the infomations and update the LastActivity of the current
 	// logged user;
 	// It returns an error describes the first issue encountered, if any.
-	GetUser() (*User, error)
+	GetUser() (User, error)
 	// FindUser finds the user with the given id;
 	// Its returns an ErrNotFound if the user's id was not found.
-	FindUser(id interface{}) (*User, error)
+	FindUser(id interface{}) (User, error)
 	// FindUserByEmail like FindUser but receive an email
-	FindUserByEmail(email string) (*User, error)
+	FindUserByEmail(email string) (User, error)
 	// FindAllUser finds and return a slice of user.
 	// offsetId, limit define which sub-sequence of matching users to return.
 	// Limit take an number of user per page; offsetId take the Id of the last
 	// user of the previous page.
-	FindAllUser(offsetId interface{}, limit int) ([]*User, error)
+	FindAllUser(offsetId interface{}, limit int) ([]User, error)
 	// FindAllUserOline finds and return a slice of current logged user.
 	// See FindAllUser for the usage.
-	FindUserOnline(offsetId interface{}, limit int) ([]*User, error)
+	FindUserOnline(offsetId interface{}, limit int) ([]User, error)
 	// CountUserOnline counts the number of user current logged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
 	// ValidateUser validate user email and password.
 	// It returns the user infomations if the email and password is correct.
-	ValidateUser(email string, password string) (*User, error)
+	ValidateUser(email string, password string) (User, error)
 	// LogginUser logs user in by using a session that store user id.
 	// Remember take a number of second to keep the user loggin state.
 	// Developer must call LogginUser before send any output to browser.
