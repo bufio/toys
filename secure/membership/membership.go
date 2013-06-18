@@ -11,7 +11,6 @@ import (
 	"errors"
 	"github.com/bufio/toys/model"
 	"hash"
-	"time"
 )
 
 var (
@@ -20,22 +19,6 @@ var (
 	ErrDuplicateEmail  error = errors.New("auth: duplicate email address")
 	ErrInvalidPassword error = errors.New("auth: invalid password")
 )
-
-type Config struct {
-	Key   string `bson:"_id"`
-	Value interface{}
-}
-
-type RememberInfo struct {
-	Id    model.Identifier `bson:"_id"`
-	Token string
-	Exp   time.Time
-}
-
-type SessionInfo struct {
-	Id model.Identifier `bson:"_id"`
-	At time.Time
-}
 
 type Authenticater interface {
 	SetPath(p string)
@@ -62,24 +45,24 @@ type Authenticater interface {
 	AddUserInfo(email, pwd string, info *Information, pri map[string]bool, notif, app bool) error
 	// DeleteUserByEmail deletes an user from database base on the given id;
 	// It returns an error describes the first issue encountered, if any.
-	DeleteUser(id interface{}) error
+	DeleteUser(id model.Identifier) error
 	// GetUser gets the infomations and update the LastActivity of the current
 	// logged user;
 	// It returns an error describes the first issue encountered, if any.
 	GetUser() (User, error)
 	// FindUser finds the user with the given id;
 	// Its returns an ErrNotFound if the user's id was not found.
-	FindUser(id interface{}) (User, error)
+	FindUser(id model.Identifier) (User, error)
 	// FindUserByEmail like FindUser but receive an email
 	FindUserByEmail(email string) (User, error)
 	// FindAllUser finds and return a slice of user.
 	// offsetId, limit define which sub-sequence of matching users to return.
 	// Limit take an number of user per page; offsetId take the Id of the last
 	// user of the previous page.
-	FindAllUser(offsetId interface{}, limit int) ([]User, error)
+	FindAllUser(offsetId model.Identifier, limit int) ([]User, error)
 	// FindAllUserOline finds and return a slice of current logged user.
 	// See FindAllUser for the usage.
-	FindUserOnline(offsetId interface{}, limit int) ([]User, error)
+	FindUserOnline(offsetId model.Identifier, limit int) ([]User, error)
 	// CountUserOnline counts the number of user current logged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
@@ -89,5 +72,10 @@ type Authenticater interface {
 	// LogginUser logs user in by using a session that store user id.
 	// Remember take a number of second to keep the user loggin state.
 	// Developer must call LogginUser before send any output to browser.
-	LogginUser(id interface{}, remember int) error
+	LogginUser(id model.Identifier, remember int) error
 }
+
+// type Config struct {
+// 	Key   string `bson:"_id"`
+// 	Value interface{}
+// }

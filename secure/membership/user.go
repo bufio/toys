@@ -11,7 +11,7 @@ import (
 
 type User interface {
 	GetId() model.Identifier
-	SetId(interface{}) error
+	SetId(model.Identifier) error
 	GetEmail() string
 	SetEmail(string)
 	GetPassword() Password
@@ -38,16 +38,14 @@ type Account struct {
 	ConfirmCode string
 }
 
+// GetId just an virtual function, you may want to re-implement it
 func (a *Account) GetId() model.Identifier {
 	return a.Id
 }
 
-func (a *Account) SetId(i interface{}) error {
-	v, ok := i.(model.Identifier)
-	if !ok {
-		return ErrInvalidId
-	}
-	a.Id = v
+// SetId just an virtual function, you may want to re-implement it
+func (a *Account) SetId(id model.Identifier) error {
+	a.Id = id
 	return nil
 }
 
