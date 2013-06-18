@@ -33,7 +33,7 @@ Then you can use the package like this:
 package locale
 
 import (
-	"kidstuff"
+	"bufio"
 	"bytes"
 	"errors"
 	"os"
@@ -59,7 +59,7 @@ func NewLang(root string) *Lang {
 // from the input buffered reader.
 // An error is returned if there is an error with the
 // buffered reader.
-func readln(r *kidstuff.Reader) ([]byte, error) {
+func readln(r *bufio.Reader) ([]byte, error) {
 	var (
 		isPrefix bool  = true
 		err      error = nil
@@ -111,7 +111,7 @@ func (l *Lang) Parse(set string) error {
 				continue
 			}
 
-			r := kidstuff.NewReader(f)
+			r := bufio.NewReader(f)
 			s, e := readln(r)
 			if e != nil {
 				continue
