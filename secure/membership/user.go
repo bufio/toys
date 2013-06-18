@@ -5,7 +5,7 @@
 package membership
 
 import (
-	"github.com/bufio/toys/model"
+	"github.com/kidstuff/toys/model"
 	"time"
 )
 

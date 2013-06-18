@@ -42,7 +42,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/bufio/toys/locale"
+	"github.com/kidstuff/toys/locale"
 	"html/template"
 	"io"
 	"io/ioutil"

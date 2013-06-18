@@ -9,7 +9,7 @@ package sessions
 
 import (
 	"encoding/base64"
-	"github.com/bufio/toys/secure"
+	"github.com/kidstuff/toys/secure"
 	"time"
 )
 
