@@ -9,7 +9,7 @@ package membership
 
 import (
 	"errors"
-	"github.com/bufio/toys/model"
+	"github.com/kidstuff/toys/model"
 	"hash"
 )
 
