@@ -16,7 +16,7 @@ import (
 // SessionEntry is a piece of infomation you save in database (or mem-cache) to
 // handle sessions n general.
 type SessionEntry struct {
-	Id           string `bson:"_id"`
+	Id           string `bson:"_id" datastore:"-"`
 	RemoteAddr   string
 	UserAgent    string
 	LastActivity time.Time
@@ -40,8 +40,8 @@ func NewSessionEntry(addr, agent string) *SessionEntry {
 type Provider interface {
 	SetCookieName(name string)
 	CookieName() string
-	SetExpiration(exp int)
-	Expiration() int
+	SetExpiration(time.Duration)
+	Expiration() time.Duration
 	SetMatchRemoteAddr(match bool)
 	MatchRemoteAddr() bool
 	SetMatchUserAgent(match bool)

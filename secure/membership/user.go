@@ -28,14 +28,15 @@ type User interface {
 }
 
 type Account struct {
-	Id          model.Identifier `bson:"-" datastore:"-"`
-	Email       string
-	OldPwd      Password
-	Pwd         Password
-	Info        Information
-	Privilege   map[string]bool
-	Approved    bool
-	ConfirmCode string
+	Id           model.Identifier `bson:"-" datastore:"-"`
+	Email        string
+	OldPwd       Password
+	Pwd          Password
+	LastActivity time.Time
+	Info         Information
+	Privilege    map[string]bool
+	Approved     bool
+	ConfirmCode  string
 }
 
 // GetId just an virtual function, you may want to re-implement it
@@ -108,15 +109,14 @@ type Password struct {
 }
 
 type Information struct {
-	FirstName    string
-	LastName     string
-	MiddleName   string
-	NickName     string
-	BirthDay     time.Time
-	JoinDay      time.Time
-	LastActivity time.Time
-	Address      []Address
-	Phone        []string
+	FirstName  string
+	LastName   string
+	MiddleName string
+	NickName   string
+	BirthDay   time.Time
+	JoinDay    time.Time
+	Address    []Address
+	Phone      []string
 }
 
 type Address struct {

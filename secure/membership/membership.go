@@ -59,10 +59,10 @@ type Authenticater interface {
 	// offsetId, limit define which sub-sequence of matching users to return.
 	// Limit take an number of user per page; offsetId take the Id of the last
 	// user of the previous page.
-	FindAllUser(offsetId model.Identifier, limit int) ([]User, error)
+	FindAllUser(offsetId model.Identifier, limit int) (UserLister, error)
 	// FindAllUserOline finds and return a slice of current logged user.
 	// See FindAllUser for the usage.
-	FindUserOnline(offsetId model.Identifier, limit int) ([]User, error)
+	FindUserOnline(offsetId model.Identifier, limit int) (UserLister, error)
 	// CountUserOnline counts the number of user current logged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
