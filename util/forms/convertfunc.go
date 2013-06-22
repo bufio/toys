@@ -5,14 +5,14 @@ import (
 	"strconv"
 )
 
-type ConvertFunc func(string) reflect.Value
+type ConvertFunc func([]string) reflect.Value
 
 var basicTypeConvert = map[reflect.Kind]ConvertFunc{
-	reflect.String: func(s string) reflect.Value {
-		return reflect.ValueOf(s)
+	reflect.String: func(s []string) reflect.Value {
+		return reflect.ValueOf(s[0])
 	},
-	reflect.Int: func(s string) reflect.Value {
-		i, err := strconv.Atoi(s)
+	reflect.Int: func(s []string) reflect.Value {
+		i, err := strconv.Atoi(s[0])
 		if err != nil {
 			return reflect.ValueOf(0)
 		}

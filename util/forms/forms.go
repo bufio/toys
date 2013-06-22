@@ -1,22 +1,30 @@
 package forms
 
 import (
+	"container/list"
 	"errors"
 	"reflect"
-	"strings"
 )
 
-var cacheStruct = map[string]*StructData{}
+var cachedStruct = make(map[string]*StructInfo)
 
-type StructData struct {
-	Fields map[string]*StructData
-	// converter func(string) interface{}
-	// validator func(string) error
-	IsBasic bool
-	Kind    reflect.Kind
+type StructInfo struct {
+	Data map[string]FieldInfo
 }
 
-func Prepare(i interface{}) (*StructData, error) {
+type FieldInfo struct {
+	isBasic bool
+	isSlice bool
+	kind    reflect.Kind
+	sInfo   *StructInfo
+}
+
+type processItem struct {
+	t     reflect.StructField
+	sName string
+}
+
+func Prepare(i interface{}) (*StructInfo, error) {
 	t := reflect.TypeOf(i)
 	if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
 		return parse(t.Elem()), nil
@@ -24,85 +32,73 @@ func Prepare(i interface{}) (*StructData, error) {
 	return nil, errors.New("forms: function must recieve a pointer")
 }
 
-func parse(t reflect.Type) *StructData {
-	if v, ok := cacheStruct[t.PkgPath()+"."+t.Name()]; ok {
-		return v
+func parse(t reflect.Type) *StructInfo {
+	sName := fullname(t)
+	if sInfo, ok := cachedStruct[sName]; ok {
+		return sInfo
 	}
 
-	sdata := &StructData{}
-	sdata.Kind = t.Kind()
-	if (1 <= t.Kind() && t.Kind() <= 16) || t.Kind() == 24 {
-		sdata.IsBasic = true
-	} else {
-		sdata.IsBasic = false
-		numField := 0
-		if t.Kind() == reflect.Struct {
-			numField = t.NumField()
-		} else if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
-			t = t.Elem()
-			numField = t.NumField()
-			if v, ok := cacheStruct[t.PkgPath()+"."+t.Name()]; ok {
-				return v
-			}
-		}
-		if numField > 0 {
-			sdata.Fields = make(map[string]*StructData)
-			cacheStruct[t.PkgPath()+"."+t.Name()] = sdata
-			for i := 0; i < numField; i++ {
-				f := t.Field(i)
-				if len(f.PkgPath) == 0 { // exported field
-					sdata.Fields[f.Name] = parse(f.Type)
-				}
-			}
-		}
-	}
-	return sdata
-}
+	sInfo := &StructInfo{}
+	sInfo.Data = make(map[string]FieldInfo)
+	cachedStruct[sName] = sInfo
 
-func Fill(src map[string][]string, dst interface{}) error {
-	//TODO: alot
-	dstVal := reflect.ValueOf(dst)
-	if dstVal.Kind() != reflect.Ptr || dstVal.Elem().Kind() != reflect.Struct {
-		return errors.New("forms: function must recieve a pointer")
-	}
-	dstVal = dstVal.Elem()
-	dstData := parse(dstVal.Type())
-	for path, input := range src {
-		fields := strings.Split(path, ".")
-		sdata := dstData
-		fieldVal := dstVal
-		var i int
-		for i = 0; i < len(fields); i++ {
-			var ok bool
-			sdata, ok = sdata.Fields[fields[i]]
-			if !ok {
-				break
-			}
-			fieldVal = fieldVal.FieldByName(fields[i])
+	lst := list.New()
+	pushToList(lst, t, sName)
+
+	for lst.Len() != 0 {
+		lstItem := lst.Front()
+		lst.Remove(lstItem)
+		item, ok := lstItem.Value.(processItem)
+		if !ok {
+			return cachedStruct[sName]
 		}
-		if sdata == nil || i != len(fields) {
-			println("filed", sdata, i, len(fields))
+		tags := taglist(item.t.Tag)
+		if tags[0] == "-" {
 			continue
 		}
-		if sdata.IsBasic {
-			fieldVal.Set(basicTypeConvert[sdata.Kind](input[0]))
+
+		fInfo := FieldInfo{}
+		kind := item.t.Type.Kind()
+		if isBasic(kind) {
+			fInfo.isBasic = true
+			fInfo.kind = kind
+		} else if kind == reflect.Struct {
+			sName := fullname(item.t.Type)
+			if _, ok := cachedStruct[sName]; !ok {
+				cachedStruct[sName] = &StructInfo{}
+				cachedStruct[sName].Data = make(map[string]FieldInfo)
+				pushToList(lst, item.t.Type, sName)
+			}
+			fInfo.sInfo = cachedStruct[sName]
+		} else if kind == reflect.Slice || kind == reflect.Array {
+			sName := fullname(item.t.Type.Elem())
+			if _, ok := cachedStruct[sName]; !ok {
+				cachedStruct[sName] = &StructInfo{}
+				cachedStruct[sName].Data = make(map[string]FieldInfo)
+				pushToList(lst, item.t.Type.Elem(), sName)
+			}
+			fInfo.sInfo = cachedStruct[sName]
 		}
+
+		cachedStruct[item.sName].Data[item.t.Name] = fInfo
 	}
+	return cachedStruct[sName]
+}
+
+func pushToList(lst *list.List, t reflect.Type, sName string) {
+	for i := 0; i < t.NumField(); i++ {
+		lst.PushFront(processItem{t.Field(i), sName})
+	}
+}
+
+func Decode(dst interface{}, src map[string][]string) error {
+	// sInfo, err := Prepare(dst)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// for path, vals := range src {
+
+	// }
 	return nil
-}
-
-func GenCode(v interface{}, ferr *FormError) (string, error) {
-	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
-		//sdata := parse(t.Elem())
-	}
-	return "", errors.New("forms: function must recieve a pointer")
-}
-
-func SetConverter(path string, f ConvertFunc) {
-
-}
-
-func Cache() map[string]*StructData {
-	return cacheStruct
 }

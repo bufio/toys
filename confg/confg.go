@@ -3,8 +3,46 @@
 // license that can be found in the LICENSE file.
 package confg
 
+import (
+	"errors"
+)
+
 type Configurator interface {
+	Load(path string) error
+	Close() error
 	Set(k string, v interface{})
 	Get(k string) interface{}
 	Del(k string)
+}
+
+var configurators = make(map[string]Configurator)
+
+var (
+	ErrConfiguratorNotFound = errors.New("confg: Configurator not found")
+)
+
+func Register(name string, configurator Configurator) {
+	if configurator == nil {
+		panic("confg: Register configurator is nil")
+	}
+
+	if _, dup := configurators[name]; dup {
+		panic("confg: Register called twice for " + name)
+	}
+
+	configurators[name] = configurator
+}
+
+func Open(name, path string) (Configurator, error) {
+	config, ok := configurators[name]
+	if !ok {
+		return nil, ErrConfiguratorNotFound
+	}
+
+	err := config.Load(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
