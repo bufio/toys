@@ -9,6 +9,7 @@ package secure
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"io"
 )
 
@@ -19,4 +20,13 @@ func RandomToken(l uint) []byte {
 		return nil
 	}
 	return t
+}
+
+func RandomString(l uint) string {
+	// TODO: use a better solution rather than wasting some bytes
+	l2 := l
+	if d := l % 4; d != 0 {
+		l2 = l2 + (4 - d)
+	}
+	return base64.StdEncoding.EncodeToString(RandomToken(l2 / 4 * 3))[:l]
 }

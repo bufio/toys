@@ -13,6 +13,8 @@ import (
 type Notificater interface {
 	AccountAdded(User) error
 	PasswordChanged(User) error
+	AccountInfoChanged(User) error
+	AccountPrivilegeChanged(User) error
 }
 
 type SMTPNotificater struct {
@@ -24,9 +26,10 @@ type SMTPNotificater struct {
 	// Email use to send, eg: no-reply@gmail.com
 	Email string
 	//
-	accAddedTmpl *template.Template
-	//
+	accAddedTmpl    *template.Template
 	passChangedTmpl *template.Template
+	infoChangedTmpl *template.Template
+	privChangedTmpl *template.Template
 }
 
 func NewSMTPNotificater(email, pass, addr string, port int) *SMTPNotificater {
@@ -50,7 +53,21 @@ func NewSMTPNotificater(email, pass, addr string, port int) *SMTPNotificater {
 		Subject: noreply: Your password just changed.
 
 		Hi {{.GetEmail}},
-		You just change you password, this email notice you abou that.
+		Your password just change, this email notice you abou that.
+		The new password is:
+			{{.GetPassword}}
+	`))
+	n.infoChangedTmpl = template.Must(template.New("passChangedTmpl").Parse(`
+		Subject: noreply: Your information just changed.
+
+		Hi {{.GetEmail}},
+		Your information just change, this email notice you abou that.
+	`))
+	n.privChangedTmpl = template.Must(template.New("passChangedTmpl").Parse(`
+		Subject: noreply: Your privilege just changed.
+
+		Hi {{.GetEmail}},
+		Your privilege just change, this email notice you abou that.
 	`))
 	return n
 }
@@ -65,6 +82,19 @@ func (n *SMTPNotificater) AccountAdded(user User) error {
 func (n *SMTPNotificater) PasswordChanged(user User) error {
 	var buff bytes.Buffer
 	n.passChangedTmpl.Execute(&buff, user)
+	err := smtp.SendMail(n.Addr, n.Auth, n.Email, []string{user.GetEmail()}, buff.Bytes())
+	return err
+}
+
+func (n *SMTPNotificater) AccountInfoChanged(user User) error {
+	var buff bytes.Buffer
+	n.infoChangedTmpl.Execute(&buff, user)
+	err := smtp.SendMail(n.Addr, n.Auth, n.Email, []string{user.GetEmail()}, buff.Bytes())
+	return err
+}
+func (n *SMTPNotificater) AccountPrivilegeChanged(user User) error {
+	var buff bytes.Buffer
+	n.privChangedTmpl.Execute(&buff, user)
 	err := smtp.SendMail(n.Addr, n.Auth, n.Email, []string{user.GetEmail()}, buff.Bytes())
 	return err
 }

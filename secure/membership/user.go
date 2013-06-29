@@ -13,18 +13,12 @@ type User interface {
 	GetId() model.Identifier
 	SetId(model.Identifier) error
 	GetEmail() string
-	SetEmail(string)
 	GetPassword() Password
-	SetPassword(*Password)
 	GetOldPassword() Password
 	GetInfomation() Information
-	SetInfomation(*Information)
 	GetPrivilege() map[string]bool
-	SetPrivilege(map[string]bool)
 	IsApproved() bool
-	Approve()
-	GetConfirmCode() string
-	SetConfirmCode(string)
+	GetConfirmCodes() map[string]string
 }
 
 type Account struct {
@@ -36,7 +30,7 @@ type Account struct {
 	Info         Information
 	Privilege    map[string]bool
 	Approved     bool
-	ConfirmCode  string
+	ConfirmCodes map[string]string
 }
 
 // GetId just an virtual function, you may want to re-implement it
@@ -54,16 +48,8 @@ func (a *Account) GetEmail() string {
 	return a.Email
 }
 
-func (a *Account) SetEmail(email string) {
-	a.Email = email
-}
-
 func (a *Account) GetPassword() Password {
 	return a.Pwd
-}
-
-func (a *Account) SetPassword(pwd *Password) {
-	a.Pwd = *pwd
 }
 
 func (a *Account) GetOldPassword() Password {
@@ -74,32 +60,16 @@ func (a *Account) GetInfomation() Information {
 	return a.Info
 }
 
-func (a *Account) SetInfomation(info *Information) {
-	a.Info = *info
-}
-
 func (a *Account) GetPrivilege() map[string]bool {
 	return a.Privilege
-}
-
-func (a *Account) SetPrivilege(priv map[string]bool) {
-	a.Privilege = priv
 }
 
 func (a *Account) IsApproved() bool {
 	return a.Approved
 }
 
-func (a *Account) Approve() {
-	a.Approved = true
-}
-
-func (a *Account) GetConfirmCode() string {
-	return a.ConfirmCode
-}
-
-func (a *Account) SetConfirmCode(code string) {
-	a.ConfirmCode = code
+func (a *Account) GetConfirmCodes() map[string]string {
+	return a.ConfirmCodes
 }
 
 type Password struct {

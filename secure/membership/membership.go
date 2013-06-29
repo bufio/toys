@@ -23,7 +23,7 @@ var (
 type Authenticater interface {
 	SetPath(p string)
 	SetDomain(d string)
-	// SetOnlineThreshold sets the online threshold time, if t <= 0, the loggin
+	// SetOnlineThreshold sets the online threshold time, if t <= 0, the Login
 	// state will last until the session expired.
 	SetOnlineThreshold(t int)
 	// SetHashFunc sets the hash.Hash which will be use for password hasing
@@ -47,7 +47,7 @@ type Authenticater interface {
 	// It returns an error describes the first issue encountered, if any.
 	DeleteUser(id model.Identifier) error
 	// GetUser gets the infomations and update the LastActivity of the current
-	// logged user;
+	// Loged user;
 	// It returns an error describes the first issue encountered, if any.
 	GetUser() (User, error)
 	// FindUser finds the user with the given id;
@@ -60,22 +60,33 @@ type Authenticater interface {
 	// Limit take an number of user per page; offsetId take the Id of the last
 	// user of the previous page.
 	FindAllUser(offsetId model.Identifier, limit int) (UserLister, error)
-	// FindAllUserOline finds and return a slice of current logged user.
+	// FindAllUserOline finds and return a slice of current Loged user.
 	// See FindAllUser for the usage.
 	FindUserOnline(offsetId model.Identifier, limit int) (UserLister, error)
-	// CountUserOnline counts the number of user current logged.
+	// CountUserOnline counts the number of user current Loged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
 	// ValidateUser validate user email and password.
 	// It returns the user infomations if the email and password is correct.
 	ValidateUser(email string, password string) (User, error)
-	// LogginUser logs user in by using a session that store user id.
-	// Remember take a number of second to keep the user loggin state.
-	// Developer must call LogginUser before send any output to browser.
-	LogginUser(id model.Identifier, remember int) error
+	// Login logs user in by using a session that store user id.
+	// Remember take a number of second to keep the user Login state.
+	// Developer must call LoginUser before send any output to browser.
+	Login(id model.Identifier, remember int) error
+	Logout() error
+	// UpdateInfo changes information of user specify by id and send a
+	// notification if need. It returns error if any.
+	UpdateInfo(id model.Identifier, info *Information, notif bool) error
+	// UpdatePrivilege changes privilege of user specify by id and send a
+	// notification if need. It returns error if any.
+	UpdatePrivilege(id model.Identifier, pri map[string]bool, notif bool) error
+	// ChangePassword changes passowrd of user specify by id and send a
+	// notification if need. It returns error if any.
+	ChangePassword(id model.Identifier, password string, notif bool) error
+	// ValidConfirmCode valid the code for specific key of the user specify by id.
+	// Re-generate or delete code for that key if need.
+	ValidConfirmCode(id model.Identifier, key, code string, regen, del bool) (bool, error)
+	// GeneratePassword caculation a membership.Password if the given password.
+	// If password is empty, GeneratePassword will generate everything.
+	GeneratePassword(password string) Password
 }
-
-// type Config struct {
-// 	Key   string `bson:"_id"`
-// 	Value interface{}
-// }
