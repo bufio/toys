@@ -8,12 +8,23 @@ on multiple database platforms.
 */
 package model
 
-var drivers = make(map[string]Driver)
+import (
+	"errors"
+	"sync"
+)
+
+var (
+	drivers = make(map[string]Driver)
+	mux     sync.Mutex
+)
 
 // Register makes a database driver available by the provided name.
 // If Register is called twice with the same name or if driver is nil,
 // it panics.
 func Register(name string, driver Driver) {
+	mux.Lock()
+	defer mux.Unlock()
+
 	if driver == nil {
 		panic("model: Register driver is nil")
 	}
@@ -23,9 +34,32 @@ func Register(name string, driver Driver) {
 	drivers[name] = driver
 }
 
+// Load return a Driver with name. An error return if the driver not exist
+func Load(name string) (Driver, error) {
+	mux.Lock()
+	defer mux.Unlock()
+
+	driver, ok := drivers[name]
+	if !ok {
+		return nil, errors.New("model: driver " + name + " not exist")
+	}
+	return driver, nil
+}
+
+// MusLoad return a Driver with name, it panic if the sriver not exist
+func MustLoad(name string) Driver {
+	driver, err := Load(name)
+	if err != nil {
+		panic("model: driver " + name + " not exist")
+	}
+
+	return driver
+}
+
+// Driver is the interface that ... do something...
 type Driver interface {
 	DecodeId(interface{}) (Identifier, error)
-	ValidIdStr(interface{}) bool
+	ValidIdRep(interface{}) bool
 	NewId() Identifier
 }
 

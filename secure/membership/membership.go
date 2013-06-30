@@ -11,6 +11,7 @@ import (
 	"errors"
 	"github.com/kidstuff/toys/model"
 	"hash"
+	"time"
 )
 
 var (
@@ -25,7 +26,7 @@ type Authenticater interface {
 	SetDomain(d string)
 	// SetOnlineThreshold sets the online threshold time, if t <= 0, the Login
 	// state will last until the session expired.
-	SetOnlineThreshold(t int)
+	SetOnlineThreshold(t time.Duration)
 	// SetHashFunc sets the hash.Hash which will be use for password hasing
 	SetHashFunc(h hash.Hash)
 	// SetNotificater sets the Notificater which will be use for sending
@@ -62,7 +63,7 @@ type Authenticater interface {
 	FindAllUser(offsetId model.Identifier, limit int) (UserLister, error)
 	// FindAllUserOline finds and return a slice of current Loged user.
 	// See FindAllUser for the usage.
-	FindUserOnline(offsetId model.Identifier, limit int) (UserLister, error)
+	FindAllUserOnline(offsetId model.Identifier, limit int) (UserLister, error)
 	// CountUserOnline counts the number of user current Loged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
@@ -73,6 +74,7 @@ type Authenticater interface {
 	// Remember take a number of second to keep the user Login state.
 	// Developer must call LoginUser before send any output to browser.
 	Login(id model.Identifier, remember int) error
+	// Logout logs the current user out.
 	Logout() error
 	// UpdateInfo changes information of user specify by id and send a
 	// notification if need. It returns error if any.

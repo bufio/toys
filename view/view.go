@@ -42,6 +42,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/howeyc/fsnotify"
 	"github.com/kidstuff/toys/locale"
 	"html/template"
 	"io"
@@ -50,6 +51,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sync"
 )
 
 // ViewSet represents the view-set sub folder.
@@ -72,6 +74,9 @@ type View struct {
 	current  string
 	funcsMap template.FuncMap
 	resource string
+	Watch    bool
+	watcher  *fsnotify.Watcher
+	mux      sync.Mutex
 }
 
 // NewView returns a new View with the given location of the template folder.
@@ -189,6 +194,29 @@ func (v *View) Parse(set string) error {
 
 	v.set[set] = vs
 	v.current = set
+
+	if v.Watch {
+		if v.watcher != nil {
+			v.watcher.Close()
+		}
+		v.watcher, err = fsnotify.NewWatcher()
+		if err != nil {
+			return fmt.Errorf("view: error trying watching template folder\n%s", err.Error())
+		}
+		v.watcher.Watch(setFolder)
+		v.watcher.Watch(filepath.Join(setFolder, "shared"))
+
+		go func() {
+			for {
+				_, ok := <-v.watcher.Event
+				if ok {
+					v.Parse(v.current)
+				} else {
+					return
+				}
+			}
+		}()
+	}
 	return nil
 }
 
