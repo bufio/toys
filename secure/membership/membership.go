@@ -21,7 +21,7 @@ var (
 	ErrInvalidPassword error = errors.New("auth: invalid password")
 )
 
-type Authenticater interface {
+type UserManager interface {
 	SetPath(p string)
 	SetDomain(d string)
 	// SetOnlineThreshold sets the online threshold time, if t <= 0, the Login
@@ -38,12 +38,12 @@ type Authenticater interface {
 	// if notif is true, a NewAccount notification will be send to user by the
 	// Notificater. If app is false, the user is waiting to be approved.
 	// It returns an error describes the first issue encountered, if any.
-	AddUser(email, pwd string, notif, app bool) error
+	AddUser(email, pwd string, notif, app bool) (User, error)
 	// AddUserInfo adds an user to database;
 	// if notif is true, a NewAccount notification will be send to user by the
 	// Notificater. If app is false, the user is waiting to be approved.
 	// It returns an error describes the first issue encountered, if any.
-	AddUserInfo(email, pwd string, info *Information, pri map[string]bool, notif, app bool) error
+	AddUserDetail(email, pwd string, info *UserInfo, pri map[string]bool, notif, app bool) (User, error)
 	// DeleteUserByEmail deletes an user from database base on the given id;
 	// It returns an error describes the first issue encountered, if any.
 	DeleteUser(id model.Identifier) error
@@ -60,10 +60,10 @@ type Authenticater interface {
 	// offsetId, limit define which sub-sequence of matching users to return.
 	// Limit take an number of user per page; offsetId take the Id of the last
 	// user of the previous page.
-	FindAllUser(offsetId model.Identifier, limit int) (UserLister, error)
+	FindAllUser(offsetId model.Identifier, limit int) ([]User, error)
 	// FindAllUserOline finds and return a slice of current Loged user.
 	// See FindAllUser for the usage.
-	FindAllUserOnline(offsetId model.Identifier, limit int) (UserLister, error)
+	FindAllUserOnline(offsetId model.Identifier, limit int) ([]User, error)
 	// CountUserOnline counts the number of user current Loged.
 	// It counts the user that LastActivity+OnlineThreshold<Now.
 	CountUserOnline() int
@@ -78,7 +78,7 @@ type Authenticater interface {
 	Logout() error
 	// UpdateInfo changes information of user specify by id and send a
 	// notification if need. It returns error if any.
-	UpdateInfo(id model.Identifier, info *Information, notif bool) error
+	UpdateInfo(id model.Identifier, info *UserInfo, notif bool) error
 	// UpdatePrivilege changes privilege of user specify by id and send a
 	// notification if need. It returns error if any.
 	UpdatePrivilege(id model.Identifier, pri map[string]bool, notif bool) error

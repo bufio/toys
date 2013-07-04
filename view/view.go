@@ -76,7 +76,11 @@ type View struct {
 	resource string
 	Watch    bool
 	watcher  *fsnotify.Watcher
-	mux      sync.Mutex
+	mux      struct {
+		set     sync.RWMutex
+		current sync.RWMutex
+		watcher sync.Mutex
+	}
 }
 
 // NewView returns a new View with the given location of the template folder.
@@ -140,14 +144,21 @@ func (v *View) AddFunc(name string, f interface{}) error {
 
 // SetDefault change the set to default. It call Parse if need.
 func (v *View) SetDefault(set string) error {
+	v.mux.set.RLock()
 	_, ok := v.set[set]
+	v.mux.set.RUnlock()
+
 	if !ok {
 		err := v.Parse(set)
 		if err != nil {
 			return err
 		}
 	}
+
+	v.mux.current.Lock()
 	v.current = set
+	v.mux.current.Unlock()
+
 	return nil
 }
 
@@ -192,10 +203,16 @@ func (v *View) Parse(set string) error {
 		}
 	}
 
-	v.set[set] = vs
+	v.mux.current.Lock()
 	v.current = set
+	v.mux.current.Unlock()
+
+	v.mux.set.Lock()
+	v.set[set] = vs
+	v.mux.set.Unlock()
 
 	if v.Watch {
+		v.mux.watcher.Lock()
 		if v.watcher != nil {
 			v.watcher.Close()
 		}
@@ -205,12 +222,13 @@ func (v *View) Parse(set string) error {
 		}
 		v.watcher.Watch(setFolder)
 		v.watcher.Watch(filepath.Join(setFolder, "shared"))
+		v.mux.watcher.Unlock()
 
 		go func() {
 			for {
 				_, ok := <-v.watcher.Event
 				if ok {
-					v.Parse(v.current)
+					v.Parse(set)
 				} else {
 					return
 				}
@@ -222,7 +240,14 @@ func (v *View) Parse(set string) error {
 
 // Load render the template you specific with name and write it to the Writer.W
 func (v *View) Load(w io.Writer, pageName string, data interface{}) error {
-	p, ok := v.set[v.current].page[pageName]
+	v.mux.current.RLock()
+	setName := v.current
+	v.mux.current.RUnlock()
+
+	v.mux.set.RLock()
+	p, ok := v.set[setName].page[pageName]
+	v.mux.set.RUnlock()
+
 	if ok {
 		return p.ExecuteTemplate(w, "layout.tmpl", data)
 	}

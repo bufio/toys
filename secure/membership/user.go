@@ -15,7 +15,7 @@ type User interface {
 	GetEmail() string
 	GetPassword() Password
 	GetOldPassword() Password
-	GetInfomation() Information
+	GetInfomation() UserInfo
 	GetPrivilege() map[string]bool
 	IsApproved() bool
 	GetConfirmCodes() map[string]string
@@ -27,7 +27,7 @@ type Account struct {
 	OldPwd       Password
 	Pwd          Password
 	LastActivity time.Time
-	Info         Information
+	Info         UserInfo
 	Privilege    map[string]bool
 	Approved     bool
 	ConfirmCodes map[string]string
@@ -56,7 +56,7 @@ func (a *Account) GetOldPassword() Password {
 	return a.OldPwd
 }
 
-func (a *Account) GetInfomation() Information {
+func (a *Account) GetInfomation() UserInfo {
 	return a.Info
 }
 
@@ -78,7 +78,7 @@ type Password struct {
 	InitAt time.Time
 }
 
-type Information struct {
+type UserInfo struct {
 	FirstName  string
 	LastName   string
 	MiddleName string
