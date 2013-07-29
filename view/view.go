@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 
 /*
+Note: this package use <% and %> in role of template delimiters instead of the
+default {{ and }} of Go template.
 Package view implements a basic template system on top of html/template package.
 The package require a special structed folder like this example:
 
@@ -28,11 +30,11 @@ Assuming your template folder located at path/to/template. There is some rules w
 
 There is some rules for "xyz.tmpl" files:
 
-	All the contain of the file must in the {{define "page"}} ... {{end}} block.
-	You can call the shared content (insert the content of the tmpl file in shared folder) by {{template "menu.tmpl"}} etc.
+	All the contain of the file must in the <%define "page"%> ... <%end%> block.
+	You can call the shared content (insert the content of the tmpl file in shared folder) by <%template "menu.tmpl"%> etc.
 
 The "layout.tmpl" in shared folder is the main layout. The content of "xyz.tmpl" files should be
-embedded in this file. You must put {{template "page" .}} some where in this file.
+embedded in this file. You must put <%template "page" .%> some where in this file.
 
 For more detail, see the tutorial.
 */
@@ -54,23 +56,10 @@ import (
 	"sync"
 )
 
-// ViewSet represents the view-set sub folder.
-type ViewSet struct {
-	diver *template.Template
-	page  map[string]*template.Template
-}
-
-// NewViewSet return a new ViewSet
-func NewViewSet() *ViewSet {
-	v := &ViewSet{}
-	v.page = make(map[string]*template.Template)
-	return v
-}
-
 // View manages the whole template system.
 type View struct {
 	root     string
-	set      map[string]*ViewSet
+	set      map[string]map[string]*template.Template
 	current  string
 	funcsMap template.FuncMap
 	resource string
@@ -87,7 +76,7 @@ type View struct {
 func NewView(root string) *View {
 	v := &View{}
 	v.root = root
-	v.set = make(map[string]*ViewSet)
+	v.set = make(map[string]map[string]*template.Template)
 	v.funcsMap = template.FuncMap{}
 	v.funcsMap["resource"] = func(uri string) string {
 		return v.resource + uri
@@ -112,7 +101,7 @@ func NewView(root string) *View {
 HandleResource make a handler that serves HTTP for static file that use for template system.
 For example if you want handle the static files at example.com/statics/ you should call:
 	*View.HandleResource("/statics/", "path/to/statics/folder/")
-And then in the .tmpl file you can call {{resource "css/index.css"}}, it will returns
+And then in the .tmpl file you can call <%resource "css/index.css"%>, it will returns
 "/statics/css/index.css"
 */
 func (v *View) HandleResource(prefix, folder string) {
@@ -122,7 +111,7 @@ func (v *View) HandleResource(prefix, folder string) {
 }
 
 // AddFunc add the function to the template system. You call call the function you added in the .tmpl
-// files by {{function-name}}. An error return if you add an invalid function.
+// files by <%function-name%>. An error return if you add an invalid function.
 // Note: this function must be call before Parse.
 func (v *View) AddFunc(name string, f interface{}) error {
 	if r := reflect.TypeOf(f); r.Kind() == reflect.Func {
@@ -167,10 +156,9 @@ func (v *View) SetDefault(set string) error {
 func (v *View) Parse(set string) error {
 	setFolder := filepath.Join(v.root, set)
 
-	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).
+	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).Delims("<%", "%>").
 		ParseGlob(filepath.Join(setFolder, "shared", "*.tmpl")))
-	vs := NewViewSet()
-	vs.diver = tmpl
+	vs := make(map[string]*template.Template)
 	//parse page
 	setroot, err := os.Open(setFolder)
 	defer setroot.Close()
@@ -196,7 +184,7 @@ func (v *View) Parse(set string) error {
 			}
 			_, err = p.Parse(string(b))
 			if err == nil {
-				vs.page[file.Name()] = p
+				vs[file.Name()] = p
 			} else {
 				return err
 			}
@@ -245,7 +233,7 @@ func (v *View) Load(w io.Writer, pageName string, data interface{}) error {
 	v.mux.current.RUnlock()
 
 	v.mux.set.RLock()
-	p, ok := v.set[setName].page[pageName]
+	p, ok := v.set[setName][pageName]
 	v.mux.set.RUnlock()
 
 	if ok {
@@ -257,8 +245,8 @@ func (v *View) Load(w io.Writer, pageName string, data interface{}) error {
 
 // SetLang set the language use with the current template system. The method must be call before Parse.
 // After call this method you can use these command in your .tmpl files:
-// 	{{lang "filename.lang" "key"}}
-// 	{{langset "set" "filename.lang" "key"}}
+// 	<%lang "filename.lang" "key"%>
+// 	<%langset "set" "filename.lang" "key"%>
 func (v *View) SetLang(l *locale.Lang) {
 	v.funcsMap["lang"] = func(file, key string) string {
 		return l.Load(file, key)
