@@ -12,20 +12,15 @@ type Grouper interface {
 	GetPrivilege() map[string]bool
 }
 
+type BriefGroup struct {
+	Id   model.Identifier `bson:"-" datastore:"-"`
+	Name string
+}
+
 type Group struct {
-	Id        model.Identifier `bson:"-" datastore:"-"`
 	Name      string
-	Info      GroupInfo
+	Info      GroupInfo `datastore:",noindex"`
 	Privilege map[string]bool
-}
-
-func (g *Group) GetId() model.Identifier {
-	return g.Id
-}
-
-func (g *Group) SetId(id model.Identifier) error {
-	g.Id = id
-	return nil
 }
 
 func (g *Group) GetName() string {

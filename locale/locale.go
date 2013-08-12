@@ -35,7 +35,7 @@ package locale
 import (
 	"bufio"
 	"bytes"
-	"errors"
+	"github.com/kidstuff/toys/util/errs"
 	"os"
 	"path/filepath"
 )
@@ -93,12 +93,12 @@ func (l *Lang) Parse(set string) error {
 	defer setroot.Close()
 
 	if err != nil {
-		return errors.New("lang: cannot open language set folder")
+		return errs.New("lang: cannot open language set folder")
 	}
 
 	files, err := setroot.Readdir(-1)
 	if err != nil {
-		return errors.New("lang: cannot list file in language set folder")
+		return errs.New("lang: cannot list file in language set folder")
 	}
 
 	l.set[set] = make(map[string]map[string]string)

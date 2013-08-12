@@ -4,7 +4,7 @@
 package confg
 
 import (
-	"errors"
+	"github.com/kidstuff/toys/util/errs"
 )
 
 type Configurator interface {
@@ -18,7 +18,7 @@ type Configurator interface {
 var configurators = make(map[string]Configurator)
 
 var (
-	ErrConfiguratorNotFound = errors.New("confg: Configurator not found")
+	ErrConfiguratorNotFound = errs.New("confg: Configurator not found")
 )
 
 func Register(name string, configurator Configurator) {
@@ -41,7 +41,7 @@ func Open(name, path string) (Configurator, error) {
 
 	err := config.Load(path)
 	if err != nil {
-		return nil, err
+		return nil, errs.Err(err, "confg: cannot Open")
 	}
 
 	return config, nil

@@ -19,29 +19,18 @@ type User interface {
 	GetPrivilege() map[string]bool
 	IsApproved() bool
 	GetConfirmCodes() map[string]string
+	GetBriefGroups() []BriefGroup
 }
 
 type Account struct {
-	Id           model.Identifier `bson:"-" datastore:"-"`
 	Email        string
 	OldPwd       Password
 	Pwd          Password
 	LastActivity time.Time
-	Info         UserInfo
+	Info         UserInfo `datastore:",noindex"`
 	Privilege    map[string]bool
 	Approved     bool
 	ConfirmCodes map[string]string
-}
-
-// GetId just an virtual function, you may want to re-implement it
-func (a *Account) GetId() model.Identifier {
-	return a.Id
-}
-
-// SetId just an virtual function, you may want to re-implement it
-func (a *Account) SetId(id model.Identifier) error {
-	a.Id = id
-	return nil
 }
 
 func (a *Account) GetEmail() string {

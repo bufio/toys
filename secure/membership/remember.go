@@ -15,20 +15,8 @@ type Remember interface {
 }
 
 type RememberInfo struct {
-	Id    model.Identifier `bson:"-" datastore:"-"`
 	Token string
 	Exp   time.Time
-}
-
-// GetId just an virtual function, you may want to re-implement it
-func (r *RememberInfo) GetId() model.Identifier {
-	return r.Id
-}
-
-// SetId just an virtual function, you may want to re-implement it
-func (r *RememberInfo) SetId(id model.Identifier) error {
-	r.Id = id
-	return nil
 }
 
 func (r *RememberInfo) GetToken() string {

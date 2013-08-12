@@ -5,6 +5,7 @@
 package membership
 
 import (
+	"github.com/kidstuff/toys/util/errs"
 	"regexp"
 )
 
@@ -24,7 +25,7 @@ func NewSimpleChecker(pwdlen int) (*SimpleChecker, error) {
 	c := SimpleChecker{}
 	c.emailregex, err = regexp.Compile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	c.pwdlen = pwdlen
-	return &c, err
+	return &c, errs.Err(err, "cannot complie regex")
 }
 
 func (c *SimpleChecker) PasswordValidate(pwd string) bool {

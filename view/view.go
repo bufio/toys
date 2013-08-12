@@ -154,7 +154,7 @@ func (v *View) SetDefault(set string) error {
 func (v *View) Parse(set string) error {
 	setFolder := filepath.Join(v.root, set)
 
-	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).Delims("{{", "}}").
+	tmpl := template.Must(template.New("layout.tmpl").Funcs(v.funcsMap).
 		ParseGlob(filepath.Join(setFolder, "shared", "*.tmpl")))
 	vs := make(map[string]*template.Template)
 	//parse page

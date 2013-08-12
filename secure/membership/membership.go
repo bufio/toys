@@ -15,15 +15,17 @@ import (
 )
 
 var (
-	ErrInvalidId       error = errors.New("auth: invalid id")
-	ErrInvalidEmail    error = errors.New("auth: invalid email address")
-	ErrDuplicateEmail  error = errors.New("auth: duplicate email address")
-	ErrInvalidPassword error = errors.New("auth: invalid password")
+	ErrInvalidId       error = errors.New("membership: invalid id")
+	ErrInvalidEmail    error = errors.New("membership: invalid email address")
+	ErrDuplicateEmail  error = errors.New("membership: duplicate email address")
+	ErrInvalidPassword error = errors.New("membership: invalid password")
 )
 
 type UserManager interface {
 	SetPath(p string)
 	SetDomain(d string)
+	SetGroupManager(GroupManager)
+	GroupManager() GroupManager
 	// SetOnlineThreshold sets the online threshold time, if t <= 0, the Login
 	// state will last until the session expired.
 	SetOnlineThreshold(t time.Duration)
@@ -43,7 +45,16 @@ type UserManager interface {
 	// if notif is true, a NewAccount notification will be send to user by the
 	// Notificater. If app is false, the user is waiting to be approved.
 	// It returns an error describes the first issue encountered, if any.
-	AddUserDetail(email, pwd string, info *UserInfo, pri map[string]bool, notif, app bool) (User, error)
+	AddUserDetail(email, pwd string, info UserInfo, pri map[string]bool, notif, app bool) (User, error)
+	// UpdateInfo changes information of user specify by id and send a
+	// notification if need. It returns error if any.
+	UpdateInfo(id model.Identifier, info UserInfo, notif bool) error
+	// UpdatePrivilege changes privilege of user specify by id and send a
+	// notification if need. It returns error if any.
+	UpdatePrivilege(id model.Identifier, pri map[string]bool, notif bool) error
+	// ChangePassword changes passowrd of user specify by id and send a
+	// notification if need. It returns error if any.
+	ChangePassword(id model.Identifier, password string, notif bool) error
 	// DeleteUserByEmail deletes an user from database base on the given id;
 	// It returns an error describes the first issue encountered, if any.
 	DeleteUser(id model.Identifier) error
@@ -76,19 +87,12 @@ type UserManager interface {
 	Login(id model.Identifier, remember int) error
 	// Logout logs the current user out.
 	Logout() error
-	// UpdateInfo changes information of user specify by id and send a
-	// notification if need. It returns error if any.
-	UpdateInfo(id model.Identifier, info *UserInfo, notif bool) error
-	// UpdatePrivilege changes privilege of user specify by id and send a
-	// notification if need. It returns error if any.
-	UpdatePrivilege(id model.Identifier, pri map[string]bool, notif bool) error
-	// ChangePassword changes passowrd of user specify by id and send a
-	// notification if need. It returns error if any.
-	ChangePassword(id model.Identifier, password string, notif bool) error
 	// ValidConfirmCode valid the code for specific key of the user specify by id.
 	// Re-generate or delete code for that key if need.
 	ValidConfirmCode(id model.Identifier, key, code string, regen, del bool) (bool, error)
 	// GeneratePassword caculation a membership.Password if the given password.
 	// If password is empty, GeneratePassword will generate everything.
 	GeneratePassword(password string) Password
+	// Can uses GroupManager to determines if user have privilege to do something.
+	Can(user User, do string) bool
 }

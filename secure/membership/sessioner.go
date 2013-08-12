@@ -13,21 +13,7 @@ type Sessioner interface {
 }
 
 type SessionInfo struct {
-	Id model.Identifier `bson:"-" datastore:"-"`
 	At time.Time
-}
-
-var _ Sessioner = &SessionInfo{}
-
-// GetId just an virtual function, you may want to re-implement it
-func (s *SessionInfo) GetId() model.Identifier {
-	return s.Id
-}
-
-// SetId just an virtual function, you may want to re-implement it
-func (s *SessionInfo) SetId(id model.Identifier) error {
-	s.Id = id
-	return nil
 }
 
 func (s *SessionInfo) GetCreateTime() time.Time {

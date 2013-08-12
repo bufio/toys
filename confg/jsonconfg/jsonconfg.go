@@ -3,6 +3,7 @@ package jsonconfg
 import (
 	"encoding/json"
 	"github.com/kidstuff/toys/confg"
+	"github.com/kidstuff/toys/util/errs"
 	"os"
 )
 
@@ -15,15 +16,21 @@ type JSONConfig struct {
 	file *os.File
 }
 
-func (c *JSONConfig) Load(path string) (err error) {
+func (c *JSONConfig) Load(path string) error {
+	var err error
 	c.file, err = os.Open(path)
 	if err != nil {
-		return
+		return errs.Errf(err, "jsonconfg: cannot load the file: %s", path)
 	}
+
 	c.data = make(map[string]interface{})
 	dec := json.NewDecoder(c.file)
 	err = dec.Decode(&c.data)
-	return
+	if err != nil {
+		return errs.Errf(err, "jsonconfig: cannot deocde data in %s", path)
+	}
+
+	return nil
 }
 
 func (c *JSONConfig) Close() error {

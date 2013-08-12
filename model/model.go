@@ -9,7 +9,7 @@ on multiple database platforms.
 package model
 
 import (
-	"errors"
+	"github.com/kidstuff/toys/util/errs"
 	"sync"
 )
 
@@ -41,7 +41,7 @@ func Load(name string) (Driver, error) {
 
 	driver, ok := drivers[name]
 	if !ok {
-		return nil, errors.New("model: driver " + name + " not exist")
+		return nil, errs.New("model: driver " + name + " not exist")
 	}
 	return driver, nil
 }
