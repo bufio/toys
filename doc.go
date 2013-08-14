@@ -3,6 +3,6 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package toys asdasdada
+Package toys gives you a simple web framework with a small collection of tools
 */
 package toys

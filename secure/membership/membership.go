@@ -4,6 +4,7 @@
 
 /*
 Package membership provide a interface to easy authorization for your web application.
+This package implements github.com/kidstuff/toys/secure/membership
 */
 package membership
 
