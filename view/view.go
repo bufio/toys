@@ -47,7 +47,6 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -56,14 +55,14 @@ import (
 
 // View manages the whole template system.
 type View struct {
-	root     string
-	set      map[string]map[string]*template.Template
-	current  string
-	funcsMap template.FuncMap
-	resource string
-	Watch    bool
-	watcher  *fsnotify.Watcher
-	mux      struct {
+	root           string
+	set            map[string]map[string]*template.Template
+	current        string
+	funcsMap       template.FuncMap
+	ResourcePrefix string
+	Watch          bool
+	watcher        *fsnotify.Watcher
+	mux            struct {
 		set     sync.RWMutex
 		current sync.RWMutex
 		watcher sync.Mutex
@@ -77,7 +76,7 @@ func NewView(root string) *View {
 	v.set = make(map[string]map[string]*template.Template)
 	v.funcsMap = template.FuncMap{}
 	v.funcsMap["resource"] = func(uri string) string {
-		return v.resource + uri
+		return v.ResourcePrefix + uri
 	}
 	v.funcsMap["equal"] = func(a, b interface{}) bool {
 		return a == b
@@ -93,19 +92,6 @@ func NewView(root string) *View {
 		return buff.String()
 	}
 	return v
-}
-
-/*
-HandleResource make a handler that serves HTTP for static file that use for template system.
-For example if you want handle the static files at example.com/statics/ you should call:
-	*View.HandleResource("/statics/", "path/to/statics/folder/")
-And then in the .tmpl file you can call {{resource "css/index.css"}}, it will returns
-"/statics/css/index.css"
-*/
-func (v *View) HandleResource(prefix, folder string) {
-	v.resource = prefix
-	http.Handle(prefix, http.StripPrefix(prefix,
-		http.FileServer(http.Dir(folder))))
 }
 
 // AddFunc add the function to the template system. You call call the function you added in the .tmpl
