@@ -135,7 +135,13 @@ func (l *Lang) Load(file, key string) string {
 	return l.LoadSet(l.current, file, key)
 }
 
-// LoadSet  returns a value base on file, set name and key
+// LoadSet returns a value base on file, set name and key.
+// It will return the key if no value exist.
 func (l *Lang) LoadSet(set, file, key string) string {
-	return l.set[set][file][key]
+	v, ok := l.set[set][file][key]
+	if !ok {
+		return key
+	}
+
+	return v
 }
