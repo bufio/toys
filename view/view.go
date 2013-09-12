@@ -145,11 +145,10 @@ func (v *View) Parse(set string) error {
 	vs := make(map[string]*template.Template)
 	//parse page
 	setroot, err := os.Open(setFolder)
-	defer setroot.Close()
-
 	if err != nil {
 		return err
 	}
+	defer setroot.Close()
 
 	files, err := setroot.Readdir(-1)
 	if err != nil {

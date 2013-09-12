@@ -90,11 +90,10 @@ func (l *Lang) Parse(set string) error {
 	setFolder := filepath.Join(l.root, set)
 
 	setroot, err := os.Open(setFolder)
-	defer setroot.Close()
-
 	if err != nil {
 		return errs.New("lang: cannot open language set folder")
 	}
+	defer setroot.Close()
 
 	files, err := setroot.Readdir(-1)
 	if err != nil {
@@ -106,10 +105,10 @@ func (l *Lang) Parse(set string) error {
 		if !file.IsDir() {
 			//read file
 			f, err := os.Open(filepath.Join(setFolder, file.Name()))
-			defer f.Close()
 			if err != nil {
 				continue
 			}
+			defer f.Close()
 
 			r := bufio.NewReader(f)
 			s, e := readln(r)
